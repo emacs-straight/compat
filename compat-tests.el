@@ -25,35 +25,7 @@
 ;; Note that not all functions have tests (yet), for the most part
 ;; because it is difficult to create a reproducible environment to
 ;; test these in or their tests are trivial -- or a combination of
-;; both.  The current list of untested functions, macros, etc. are:
-;;
-;; - buffer-local-boundp (`buffer-local-boundp')
-;; - count-windows (`compat--count-windows')
-;; - define-error (`compat--define-error')
-;; - directory-empty-p (`compat--directory-empty-p')
-;; - directory-files (`compat--directory-files')
-;; - dlet (`compat--dlet')
-;; - garbage-collect-maybe (`compat--garbage-collect-maybe')
-;; - if-let (`compat--if-let')
-;; - ignore-error (`compat--ignore-error')
-;; - insert-into-buffer (`compat--insert-into-buffer')
-;; - line-number-at-pos (`compat--line-number-at-pos')
-;; - macroexp-file-name (`compat--macroexp-file-name')
-;; - make-nearby-temp-file (`compat--make-nearby-temp-file')
-;; - package-get-version (`compat--package-get-version')
-;; - recenter (`compat--recenter')
-;; - replace-regexp-in-region (`compat--replace-regexp-in-region')
-;; - setq-local (`compat--setq-local')
-;; - temporary-file-directory (`compat--temporary-file-directory')
-;; - thing-at-mouse (`compat--thing-at-mouse')
-;; - thread-first (`compat--thread-first')
-;; - thread-last (`compat--thread-last')
-;; - unlock-buffer (`compat--unlock-buffer')
-;; - when-let (`compat--when-let')
-;; - when-let* (`compat--when-let*')
-;; - with-environment-variables (`compat--with-environment-variables')
-;; - with-existing-directory (`compat--with-existing-directory')
-;; - with-file-modes (`compat--with-file-modes')
+;; both.
 ;;
 ;; Tests are welcome, but until then anyone working on these functions
 ;; should take care to test these manually.
@@ -1220,6 +1192,23 @@ the compatibility function."
   (should (= (compat--named-let l ((i 0)) (if (= i 8) i (l (1+ i))))
              8))
   (should (= (compat--named-let l ((i 0)) (if (= i 100000) i (l (1+ i))))
+             100000))
+  (should (= (compat--named-let l ((i 0))
+               (condition-case nil
+                   (if (= i 100000) i (l (1+ i)))
+                 (error nil)))
+             100000))
+  (should (= (compat--named-let l ((i 0))
+               (condition-case nil
+                   (if (= i 100000) i (l (1+ i)))
+                 (error nil)))
+             100000))
+  (should (= (compat--named-let l ((i 0))
+               (cond
+                ((= i 100000) i)
+                ((= (mod i 2) 0)
+                 (l (+ i 2)))
+                ((l (+ i 3)))))
              100000))
   (should (= (compat--named-let l ((i 0) (x 1)) (if (= i 8) x (l (1+ i) (* x 2))))
              (expt 2 8))))
