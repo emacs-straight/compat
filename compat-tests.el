@@ -401,27 +401,6 @@ the compatibility function."
     (compat--should "/abs/file..ext" "/abs/file." "..ext")
     (compat--should "/abs/file...ext" "/abs/file.." "..ext")
     (compat--error error "file" "")
-    (compat--error error '"" "ext")
-    (compat--error error "file" "")
-    (compat--error error "rel/" "ext")
-    (compat--error error "/abs/" "ext")))
-
-(ert-deftest compat-file-name-with-extension ()
-  "Check if `compat--file-name-with-extension' was implemented correctly."
-  (compat-test file-name-with-extension
-    (compat--should "file.ext" "file" "ext")
-    (compat--should "file.ext" "file" ".ext")
-    (compat--should "file.ext" "file." ".ext")
-    (compat--should "file..ext" "file.." ".ext")
-    (compat--should "file..ext" "file." "..ext")
-    (compat--should "file...ext" "file.." "..ext")
-    (compat--should "/abs/file.ext" "/abs/file" "ext")
-    (compat--should "/abs/file.ext" "/abs/file" ".ext")
-    (compat--should "/abs/file.ext" "/abs/file." ".ext")
-    (compat--should "/abs/file..ext" "/abs/file.." ".ext")
-    (compat--should "/abs/file..ext" "/abs/file." "..ext")
-    (compat--should "/abs/file...ext" "/abs/file.." "..ext")
-    (compat--error error "file" "")
     (compat--error error "" "ext")
     (compat--error error "file" "")
     (compat--error error "rel/" "ext")
@@ -462,9 +441,14 @@ the compatibility function."
     (compat--should nil '(1 2 . 3))			;dotted
     (compat--should nil (let ((l (list 1 2 3)))		;circular
                           (setf (nthcdr 3 l) l)
-                          l))))
+                          l))
+    (compat--should nil 1)                              ;non-lists
+    (compat--should nil "")
+    (compat--should nil "abc")
+    (compat--should nil [])
+    (compat--should nil [1 2 3])))
 
-(ert-deftest compat-proper-list-p-1 ()
+(ert-deftest compat-proper-list-p-2 ()
   "Check if `compat--proper-list-p' was implemented correctly (<25.3)."
   (compat-test (proper-list-p compat--proper-list-p-tortoise-hare)
     (compat--should 0 ())				;empty list
@@ -474,7 +458,13 @@ the compatibility function."
     (compat--should nil '(1 2 . 3))			;dotted
     (compat--should nil (let ((l (list 1 2 3)))		;circular
                           (setf (nthcdr 3 l) l)
-                          l))))
+                          l))
+    (compat--should nil 1)                              ;non-lists
+    (compat--should nil "")
+    (compat--should nil "abc")
+    (compat--should nil [])
+    (compat--should nil [1 2 3])))
+
 
 (ert-deftest compat-flatten-tree ()
   "Check if `compat--flatten-tree' was implemented correctly."
