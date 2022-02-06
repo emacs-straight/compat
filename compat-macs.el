@@ -61,6 +61,9 @@ attributes are handled, all others are ignored:
 - :realname :: Manual specification of a \"realname\" to use for
   the compatibility definition (symbol).
 
+- :notes :: Additional notes that a developer using this
+  compatibility function should keep in mind.
+
 TYPE is used to set the symbol property `compat-type' for NAME."
   (let* ((min-version (plist-get attr :min-version))
          (max-version (plist-get attr :max-version))
@@ -100,10 +103,12 @@ TYPE is used to set the symbol property `compat-type' for NAME."
     `(progn
        (put ',realname 'compat-type ',type)
        (put ',realname 'compat-version ,version)
+       (put ',realname 'compat-doc ,(plist-get attr :note))
+       (put ',name 'compat-def ',realname)
        ,(funcall def-fn realname version)
        ,(if feature
             ;; See https://nullprogram.com/blog/2018/02/22/:
-            `(eval-after-load ',feature `(funcall ,(lambda () ,body)))
+            `(eval-after-load ',feature `(funcall #',(lambda () ,body)))
           body))))
 
 (defun compat-common-fdefine (type name arglist docstring rest)
@@ -116,6 +121,12 @@ attributes (see `compat-generate-common')."
   (let ((body rest))
     (while (keywordp (car body))
       (setq body (cddr body)))
+    ;; It might be possible to set these properties otherwise.  That
+    ;; should be looked into and implemented if it is the case.
+    (when (and (listp (car-safe body)) (eq (caar body) 'declare))
+      (when (version<= "25" emacs-version)
+        (delq (assq 'side-effect-free (car body)) (car body))
+        (delq (assq 'pure (car body)) (car body))))
     (compat-generate-common
      name
      (lambda (realname version)
