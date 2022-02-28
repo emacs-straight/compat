@@ -172,5 +172,63 @@ Defaults to `error'."
          (delete-dups (copy-sequence (cons name conditions))))
     (when message (put name 'error-message message))))
 
+;;;; Defined in subr-x.el
+
+(compat-advise require (feature &rest args)
+  "Allow for Emacs 24.x to require the inexistent FEATURE subr-x."
+  ;; As the compatibility advise around `require` is more a hack than
+  ;; of of actual value, the highlighting is suppressed.
+  :no-highlight t
+  (if (eq feature 'subr-x)
+      (let ((entry (assq feature after-load-alist)))
+        (let ((load-file-name nil))
+          (dolist (form (cdr entry))
+            (funcall (eval form t)))))
+    (apply oldfun feature args)))
+
+(compat-defun hash-table-keys (hash-table)
+  "Return a list of keys in HASH-TABLE."
+  (let (values)
+    (maphash
+     (lambda (k _v) (push k values))
+     hash-table)
+    values))
+
+(compat-defun hash-table-values (hash-table)
+  "Return a list of values in HASH-TABLE."
+  (let (values)
+    (maphash
+     (lambda (_k v) (push v values))
+     hash-table)
+    values))
+
+(compat-defun string-empty-p (string)
+  "Check whether STRING is empty."
+  (string= string ""))
+
+(compat-defun string-join (strings &optional separator)
+  "Join all STRINGS using SEPARATOR.
+Optional argument SEPARATOR must be a string, a vector, or a list of
+characters; nil stands for the empty string."
+  (mapconcat #'identity strings separator))
+
+(compat-defun string-blank-p (string)
+  "Check whether STRING is either empty or only whitespace.
+The following characters count as whitespace here: space, tab, newline and
+carriage return."
+  (string-match-p "\\`[ \t\n\r]*\\'" string))
+
+(compat-defun string-remove-prefix (prefix string)
+  "Remove PREFIX from STRING if present."
+  (if (string-prefix-p prefix string)
+      (substring string (length prefix))
+    string))
+
+(compat-defun string-remove-suffix (suffix string)
+  "Remove SUFFIX from STRING if present."
+  (if (string-suffix-p suffix string)
+      (substring string 0 (- (length string) (length suffix)))
+    string))
+
 (provide 'compat-24.4)
 ;;; compat-24.4.el ends here
