@@ -155,14 +155,13 @@
                               compat-advise
                               defvar))
                   (push form defs))))))
-        (macroexpand-all
-         (cons 'progn (nreverse defs))))))))
+        (cons 'progn (nreverse defs)))))))
 
-(compat-insert "24.4")
-(compat-insert "25.1")
-(compat-insert "26.1")
-(compat-insert "27.1")
-(compat-insert "28.1")
+(compat-insert "24")
+(compat-insert "25")
+(compat-insert "26")
+(compat-insert "27")
+(compat-insert "28")
 
 (provide 'compat)
 ;;; compat.el ends here
