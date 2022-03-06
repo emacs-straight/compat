@@ -62,6 +62,7 @@ Concatenate the results by altering them (using `nconc').
 SEQUENCE may be a list, a vector, a boolean vector, or a string."
   (apply #'nconc (mapcar func sequence)))
 
+;;* UNTESTED
 (compat-defun line-number-at-pos (&optional position absolute)
   "Handle optional argument ABSOLUTE:
 
@@ -252,9 +253,29 @@ PREFIX is a string, and defaults to \"g\"."
                      (1+ gensym-counter)))))
     (make-symbol (format "%s%d" (or prefix "g") num))))
 
+(compat-defun assoc-delete-all (key alist &optional test)
+  "Delete from ALIST all elements whose car is KEY.
+Compare keys with TEST.  Defaults to `equal'.
+Return the modified alist.
+Elements of ALIST that are not conses are ignored."
+  :version "26.2"
+  (unless test (setq test #'equal))
+  (while (and (consp (car alist))
+	      (funcall test (caar alist) key))
+    (setq alist (cdr alist)))
+  (let ((tail alist) tail-cdr)
+    (while (setq tail-cdr (cdr tail))
+      (if (and (consp (car tail-cdr))
+	       (funcall test (caar tail-cdr) key))
+	  (setcdr tail (cdr tail-cdr))
+	(setq tail tail-cdr))))
+  alist)
+
 ;;;; Defined in files.el
 
 (declare-function temporary-file-directory nil)
+
+;;* UNTESTED
 (compat-defun make-nearby-temp-file (prefix &optional dir-flag suffix)
   "Create a temporary file as close as possible to `default-directory'.
 If PREFIX is a relative file name, and `default-directory' is a
@@ -278,6 +299,7 @@ same meaning as in `make-temp-file'."
          "^" (regexp-opt '("/afs/" "/media/" "/mnt" "/net/" "/tmp_mnt/")))))
   "File systems that ought to be mounted.")
 
+;;* UNTESTED
 (compat-defun temporary-file-directory ()
   "The directory for writing temporary files.
 In case of a remote `default-directory', this is a directory for

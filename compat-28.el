@@ -31,6 +31,7 @@
 
 ;;;; Defined in fns.c
 
+;;* INCOMPLETE FEATURE: Should handle multibyte regular expressions
 (compat-defun string-search (needle haystack &optional start-pos)
   "Search for the string NEEDLE in the strign HAYSTACK.
 
@@ -105,6 +106,7 @@ inserted before contatenating."
 
 ;;;; Defined in alloc.c
 
+;;* UNTESTED (but also not necessary)
 (compat-defun garbage-collect-maybe (_factor)
   "Call ‘garbage-collect’ if enough allocation happened.
 FACTOR determines what \"enough\" means here: If FACTOR is a
@@ -144,6 +146,7 @@ consider, and are interpreted as in `substring'."
 
 ;;;; Defined in dired.c
 
+;;* UNTESTED
 (compat-defun directory-files (directory &optional full match nosort count)
   "Handle additional optional argument COUNT:
 
@@ -160,7 +163,7 @@ If COUNT is non-nil and a natural number, the function will
 (declare-function json-serialize nil (object &rest args))
 (declare-function json-parse-string nil (string &rest args))
 
-(compat-advise json-serialize (object &rest args)
+(compat-defun json-serialize (object &rest args)
   "Handle top-level JSON values."
   :cond (condition-case err
             ;; Use `random' to prevent byte compiler from optimising
@@ -171,13 +174,13 @@ If COUNT is non-nil and a natural number, the function will
           ;; have to check if an error was raised that the function
           ;; was not defined.
           (void-function (eq (cadr err) 'json-serialize)))
-  :realname compat--json-serialize-handle-tlo
+  :prefix t
   :min-version "27"
   (if (or (listp object) (vectorp object))
-      (apply oldfun object args)
+      (apply #'json-serialize object args)
     (substring (json-serialize (list object)) 1 -1)))
 
-(compat-advise json-insert (object &rest args)
+(compat-defun json-insert (object &rest args)
   "Handle top-level JSON values."
   :cond (condition-case err
             ;; Use `random' to prevent byte compiler from optimising
@@ -188,13 +191,13 @@ If COUNT is non-nil and a natural number, the function will
           ;; have to check if an error was raised that the function
           ;; was not defined.
           (void-function (eq (cadr err) 'json-serialize)))
-  :realname compat--json-insert-handle-tlo
+  :prefix t
   :min-version "27"
   (if (or (listp object) (vectorp object))
-      (apply oldfun object args)
-    (insert (apply #'compat--json-serialize-handle-tlo oldfun object args))))
+      (apply #'json-insert object args)
+    (insert (apply #'compat-json-serialize object args))))
 
-(compat-advise json-parse-string (string &rest args)
+(compat-defun json-parse-string (string &rest args)
   "Handle top-level JSON values."
   :cond (condition-case err
             ;; Use `random' to prevent byte compiler from optimising
@@ -205,16 +208,16 @@ If COUNT is non-nil and a natural number, the function will
           ;; we have to check if an error was raised that the function
           ;; was not defined.
           (void-function (eq (cadr err) 'json-parse-error)))
-  :realname compat--json-parse-string-handle-tlo
+  :prefix t
   :min-version "27"
   (if (string-match-p "\\`[[:space:]]*[[{]" string)
-      (apply oldfun string args)
+      (apply #'json-parse-string string args)
     ;; Wrap the string in an array, and extract the value back using
     ;; `elt', to ensure that no matter what the value of `:array-type'
     ;; is we can access the first element.
-    (elt (apply oldfun (concat "[" string "]") args) 0)))
+    (elt (apply #'json-parse-string (concat "[" string "]") args) 0)))
 
-(compat-advise json-parse-buffer (&rest args)
+(compat-defun json-parse-buffer (&rest args)
   "Handle top-level JSON values."
   :cond (condition-case err
             ;; Use `random' to prevent byte compiler from optimising
@@ -225,10 +228,10 @@ If COUNT is non-nil and a natural number, the function will
           ;; we have to check if an error was raised that the function
           ;; was not defined.
           (void-function (eq (cadr err) 'json-parse-error)))
-  :realname compat--json-parse-buffer-handle-tlo
+  :prefix t
   :min-version "27"
   (if (looking-at-p "[[:space:]]*[[{]")
-      (apply oldfun args)
+      (apply #'json-parse-buffer args)
     (catch 'escape
       (atomic-change-group
         (with-syntax-table
@@ -241,10 +244,74 @@ If COUNT is non-nil and a natural number, the function will
             (insert "[")
             (forward-sexp 1)
             (insert "]"))))
-        (throw 'escape (elt (apply oldfun args) 0))))))
+        (throw 'escape (elt (apply #'json-parse-buffer args) 0))))))
+
+;;;; xfaces.c
+
+(compat-defun color-values-from-color-spec (spec)
+  "Parse color SPEC as a numeric color and return (RED GREEN BLUE).
+This function recognises the following formats for SPEC:
+
+ #RGB, where R, G and B are hex numbers of equal length, 1-4 digits each.
+ rgb:R/G/B, where R, G, and B are hex numbers, 1-4 digits each.
+ rgbi:R/G/B, where R, G and B are floating-point numbers in [0,1].
+
+If SPEC is not in one of the above forms, return nil.
+
+Each of the 3 integer members of the resulting list, RED, GREEN,
+and BLUE, is normalized to have its value in [0,65535]."
+  (save-match-data
+    (cond
+     ((string-match
+       ;; (rx bos "#"
+       ;;     (or (: (group-n 1 (= 1 hex)) (group-n 2 (= 1 hex)) (group-n 3 (= 1 hex)))
+       ;;         (: (group-n 1 (= 2 hex)) (group-n 2 (= 2 hex)) (group-n 3 (= 2 hex)))
+       ;;         (: (group-n 1 (= 3 hex)) (group-n 2 (= 3 hex)) (group-n 3 (= 3 hex)))
+       ;;         (: (group-n 1 (= 4 hex)) (group-n 2 (= 4 hex)) (group-n 3 (= 4 hex))))
+       ;;     eos)
+       "\\`#\\(?:\\(?1:[[:xdigit:]]\\{1\\}\\)\\(?2:[[:xdigit:]]\\{1\\}\\)\\(?3:[[:xdigit:]]\\{1\\}\\)\\|\\(?1:[[:xdigit:]]\\{2\\}\\)\\(?2:[[:xdigit:]]\\{2\\}\\)\\(?3:[[:xdigit:]]\\{2\\}\\)\\|\\(?1:[[:xdigit:]]\\{3\\}\\)\\(?2:[[:xdigit:]]\\{3\\}\\)\\(?3:[[:xdigit:]]\\{3\\}\\)\\|\\(?1:[[:xdigit:]]\\{4\\}\\)\\(?2:[[:xdigit:]]\\{4\\}\\)\\(?3:[[:xdigit:]]\\{4\\}\\)\\)\\'"
+       spec)
+      (let ((max (1- (ash 1 (* (- (match-end 1) (match-beginning 1)) 4)))))
+        (list (/ (* (string-to-number (match-string 1 spec) 16) 65535) max)
+              (/ (* (string-to-number (match-string 2 spec) 16) 65535) max)
+              (/ (* (string-to-number (match-string 3 spec) 16) 65535) max))))
+     ((string-match
+       ;; (rx bos "rgb:"
+       ;;     (group (** 1 4 hex)) "/"
+       ;;     (group (** 1 4 hex)) "/"
+       ;;     (group (** 1 4 hex))
+       ;;     eos)
+       "\\`rgb:\\([[:xdigit:]]\\{1,4\\}\\)/\\([[:xdigit:]]\\{1,4\\}\\)/\\([[:xdigit:]]\\{1,4\\}\\)\\'"
+       spec)
+      (list (/ (* (string-to-number (match-string 1 spec) 16) 65535)
+               (1- (ash 1 (* (- (match-end 1) (match-beginning 1)) 4))))
+            (/ (* (string-to-number (match-string 2 spec) 16) 65535)
+               (1- (ash 1 (* (- (match-end 2) (match-beginning 2)) 4))))
+            (/ (* (string-to-number (match-string 3 spec) 16) 65535)
+               (1- (ash 1 (* (- (match-end 3) (match-beginning 3)) 4))))))
+     ((string-match
+       ;; (rx bos "rgbi:" (* space)
+       ;;     (group (or (: "0" (? "." (* digit)))
+       ;;                (: "." (+ digit))
+       ;;                (: "1" (? "." (* "0")))))
+       ;;     "/" (* space)
+       ;;     (group (or (: "0" (? "." (* digit)))
+       ;;                (: "." (+ digit))
+       ;;                (: "1" (? "." (* "0")))))
+       ;;     "/" (* space)
+       ;;     (group (or (: "0" (? "." (* digit)))
+       ;;                (: "." (+ digit))
+       ;;                (: "1" (? "." (* "0")))))
+       ;;     eos)
+       "\\`rgbi:[[:space:]]*\\(0\\(?:\\.[[:digit:]]*\\)?\\|\\.[[:digit:]]+\\|1\\(?:\\.0*\\)?\\)/[[:space:]]*\\(0\\(?:\\.[[:digit:]]*\\)?\\|\\.[[:digit:]]+\\|1\\(?:\\.0*\\)?\\)/[[:space:]]*\\(0\\(?:\\.[[:digit:]]*\\)?\\|\\.[[:digit:]]+\\|1\\(?:\\.0*\\)?\\)\\'"
+       spec)
+      (list (round (* (string-to-number (match-string 1 spec)) 65535))
+            (round (* (string-to-number (match-string 2 spec)) 65535))
+            (round (* (string-to-number (match-string 3 spec)) 65535)))))))
 
 ;;;; Defined in subr.el
 
+;;* INCOMPLETE FEATURE: Should handle multibyte regular expressions
 (compat-defun string-replace (fromstring tostring instring)
   "Replace FROMSTRING with TOSTRING in INSTRING each time it occurs."
   (when (equal fromstring "")
@@ -261,6 +328,7 @@ This function accepts any number of ARGUMENTS, but ignores them.
 Also see `ignore'."
   t)
 
+;;* UNTESTED
 (compat-defun insert-into-buffer (buffer &optional start end)
   "Insert the contents of the current buffer into BUFFER.
 If START/END, only insert that region from the current buffer.
@@ -269,6 +337,35 @@ Point in BUFFER will be placed after the inserted text."
     (with-current-buffer buffer
       (insert-buffer-substring current start end))))
 
+;;* UNTESTED
+(compat-defun replace-string-in-region (string replacement &optional start end)
+  "Replace STRING with REPLACEMENT in the region from START to END.
+The number of replaced occurrences are returned, or nil if STRING
+doesn't exist in the region.
+
+If START is nil, use the current point.  If END is nil, use `point-max'.
+
+Comparisons and replacements are done with fixed case."
+  (if start
+      (when (< start (point-min))
+        (error "Start before start of buffer"))
+    (setq start (point)))
+  (if end
+      (when (> end (point-max))
+        (error "End after end of buffer"))
+    (setq end (point-max)))
+  (save-excursion
+    (let ((matches 0)
+          (case-fold-search nil))
+      (goto-char start)
+      (while (search-forward string end t)
+        (delete-region (match-beginning 0) (match-end 0))
+        (insert replacement)
+        (setq matches (1+ matches)))
+      (and (not (zerop matches))
+           matches))))
+
+;;* UNTESTED
 (compat-defun replace-regexp-in-region (regexp replacement &optional start end)
   "Replace REGEXP with REPLACEMENT in the region from START to END.
 The number of replaced occurrences are returned, or nil if REGEXP
@@ -303,6 +400,7 @@ REPLACEMENT can use the following special elements:
       (and (not (zerop matches))
            matches))))
 
+;;* UNTESTED
 (compat-defun buffer-local-boundp (symbol buffer)
   "Return non-nil if SYMBOL is bound in BUFFER.
 Also see `local-variable-p'."
@@ -312,12 +410,12 @@ Also see `local-variable-p'."
       (void-variable nil (throw 'fail nil)))
     t))
 
-(declare-function gensym nil (&optional prefix))
+;;* UNTESTED
 (compat-defmacro with-existing-directory (&rest body)
   "Execute BODY with `default-directory' bound to an existing directory.
 If `default-directory' is already an existing directory, it's not changed."
   (declare (indent 0) (debug t))
-  (let ((quit (gensym)))
+  (let ((quit (make-symbol "with-existing-directory-quit")))
     `(catch ',quit
        (dolist (dir (list default-directory
                           (expand-file-name "~/")
@@ -330,6 +428,7 @@ If `default-directory' is already an existing directory, it's not changed."
            (throw ',quit (let ((default-directory dir))
                            ,@body)))))))
 
+;;* UNTESTED
 (compat-defmacro dlet (binders &rest body)
   "Like `let' but using dynamic scoping."
   (declare (indent 1) (debug let))
@@ -526,6 +625,7 @@ See also `file-name-sans-extension'."
      (t
       (concat (file-name-sans-extension filename) "." extn)))))
 
+;;* UNTESTED
 (compat-defun directory-empty-p (dir)
   "Return t if DIR names an existing directory containing no other files.
 Return nil if DIR does not name a directory, or if there was
@@ -535,6 +635,64 @@ Symbolic links to directories count as directories.
 See `file-symlink-p' to distinguish symlinks."
   (and (file-directory-p dir)
        (null (directory-files dir nil directory-files-no-dot-files-regexp t))))
+
+(compat-defun file-modes-number-to-symbolic (mode &optional filetype)
+  "Return a string describing a file's MODE.
+For instance, if MODE is #o700, then it produces `-rwx------'.
+FILETYPE if provided should be a character denoting the type of file,
+such as `?d' for a directory, or `?l' for a symbolic link and will override
+the leading `-' char."
+  (string
+   (or filetype
+       (pcase (lsh mode -12)
+         ;; POSIX specifies that the file type is included in st_mode
+         ;; and provides names for the file types but values only for
+         ;; the permissions (e.g., S_IWOTH=2).
+
+         ;; (#o017 ??) ;; #define S_IFMT  00170000
+         (#o014 ?s)    ;; #define S_IFSOCK 0140000
+         (#o012 ?l)    ;; #define S_IFLNK  0120000
+         ;; (8  ??)    ;; #define S_IFREG  0100000
+         (#o006  ?b)   ;; #define S_IFBLK  0060000
+         (#o004  ?d)   ;; #define S_IFDIR  0040000
+         (#o002  ?c)   ;; #define S_IFCHR  0020000
+         (#o001  ?p)   ;; #define S_IFIFO  0010000
+         (_ ?-)))
+   (if (zerop (logand   256 mode)) ?- ?r)
+   (if (zerop (logand   128 mode)) ?- ?w)
+   (if (zerop (logand    64 mode))
+       (if (zerop (logand  2048 mode)) ?- ?S)
+     (if (zerop (logand  2048 mode)) ?x ?s))
+   (if (zerop (logand    32 mode)) ?- ?r)
+   (if (zerop (logand    16 mode)) ?- ?w)
+   (if (zerop (logand     8 mode))
+       (if (zerop (logand  1024 mode)) ?- ?S)
+     (if (zerop (logand  1024 mode)) ?x ?s))
+   (if (zerop (logand     4 mode)) ?- ?r)
+   (if (zerop (logand     2 mode)) ?- ?w)
+   (if (zerop (logand 512 mode))
+       (if (zerop (logand   1 mode)) ?- ?x)
+     (if (zerop (logand   1 mode)) ?T ?t))))
+
+;;* UNTESTED
+(compat-defun file-backup-file-names (filename)
+  "Return a list of backup files for FILENAME.
+The list will be sorted by modification time so that the most
+recent files are first."
+  ;; `make-backup-file-name' will get us the right directory for
+  ;; ordinary or numeric backups.  It might create a directory for
+  ;; backups as a side-effect, according to `backup-directory-alist'.
+  (let* ((filename (file-name-sans-versions
+                    (make-backup-file-name (expand-file-name filename))))
+         (dir (file-name-directory filename))
+         files)
+    (dolist (file (file-name-all-completions
+                   (file-name-nondirectory filename) dir))
+      (let ((candidate (concat dir file)))
+        (when (and (backup-file-name-p candidate)
+                   (string= (file-name-sans-versions candidate) filename))
+          (push candidate files))))
+    (sort files #'file-newer-than-file-p)))
 
 ;;;; Defined in minibuffer.el
 
@@ -565,6 +723,7 @@ is included in the return value."
 
 ;;;; Defined in windows.el
 
+;;* UNTESTED
 (compat-defun count-windows (&optional minibuf all-frames)
   "Handle optional argument ALL-FRAMES:
 
@@ -582,6 +741,8 @@ just the selected frame."
 ;;;; Defined in thingatpt.el
 
 (declare-function mouse-set-point "mouse" (event &optional promote-to-region))
+
+;;* UNTESTED
 (compat-defun thing-at-mouse (event thing &optional no-properties)
   "Return the THING at mouse click.
 Like `thing-at-point', but tries to use the event
@@ -593,6 +754,7 @@ where the mouse button is clicked to find a thing nearby."
 
 ;;;; Defined in macroexp.el
 
+;;* UNTESTED
 (compat-defun macroexp-file-name ()
   "Return the name of the file from which the code comes.
 Returns nil when we do not know.
@@ -607,6 +769,7 @@ Other uses risk returning non-nil value that point to the wrong file."
 
 ;;;; Defined in env.el
 
+;;* UNTESTED
 (compat-defmacro with-environment-variables (variables &rest body)
   "Set VARIABLES in the environent and execute BODY.
 VARIABLES is a list of variable settings of the form (VAR VALUE),
@@ -625,6 +788,7 @@ The previous values will be be restored upon exit."
 
 ;;;; Defined in button.el
 
+;;* UNTESTED
 (compat-defun button-buttonize (string callback &optional data)
   "Make STRING into a button and return it.
 When clicked, CALLBACK will be called with the DATA as the
@@ -643,6 +807,8 @@ itself will be used instead as the function argument."
 ;;;; Defined in autoload.el
 
 (defvar generated-autoload-file)
+
+;;* UNTESTED
 (compat-defun make-directory-autoloads (dir output-file)
   "Update autoload definitions for Lisp files in the directories DIRS.
 DIR can be either a single directory or a list of

@@ -85,8 +85,165 @@
         (throw 'fail nil)))
     t))
 
+(compat-defun bool-vector-exclusive-or (a b &optional c)
+  "Return A ^ B, bitwise exclusive or.
+If optional third argument C is given, store result into C.
+A, B, and C must be bool vectors of the same length.
+Return the destination vector if it changed or nil otherwise."
+  :version "24.4"
+  (unless (bool-vector-p a)
+    (signal 'wrong-type-argument (list 'bool-vector-p a)))
+  (unless (bool-vector-p b)
+    (signal 'wrong-type-argument (list 'bool-vector-p b)))
+  (unless (or (null c) (bool-vector-p c))
+    (signal 'wrong-type-argument (list 'bool-vector-p c)))
+  (when (/= (length a) (length b))
+    (signal 'wrong-length-argument (list (length a) (length b))))
+  (let ((dest (or c (make-bool-vector (length a) nil))) changed)
+    (when (/= (length a) (length dest))
+      (signal 'wrong-length-argument (list (length a) (length dest))))
+    (dotimes (i (length dest))
+      (let ((val (not (eq (aref a i) (aref b i)))))
+        (unless (eq val (aref dest i))
+          (setq changed t))
+        (aset dest i val)))
+    (if c (and changed c) dest)))
+
+(compat-defun bool-vector-union (a b &optional c)
+  "Return A | B, bitwise or.
+If optional third argument C is given, store result into C.
+A, B, and C must be bool vectors of the same length.
+Return the destination vector if it changed or nil otherwise."
+  :version "24.4"
+  (unless (bool-vector-p a)
+    (signal 'wrong-type-argument (list 'bool-vector-p a)))
+  (unless (bool-vector-p b)
+    (signal 'wrong-type-argument (list 'bool-vector-p b)))
+  (unless (or (null c) (bool-vector-p c))
+    (signal 'wrong-type-argument (list 'bool-vector-p c)))
+  (when (/= (length a) (length b))
+    (signal 'wrong-length-argument (list (length a) (length b))))
+  (let ((dest (or c (make-bool-vector (length a) nil))) changed)
+    (when (/= (length a) (length dest))
+      (signal 'wrong-length-argument (list (length a) (length dest))))
+    (dotimes (i (length dest))
+      (let ((val (or (aref a i) (aref b i))))
+        (unless (eq val (aref dest i))
+          (setq changed t))
+        (aset dest i val)))
+    (if c (and changed c) dest)))
+
+(compat-defun bool-vector-intersection (a b &optional c)
+  "Return A & B, bitwise and.
+If optional third argument C is given, store result into C.
+A, B, and C must be bool vectors of the same length.
+Return the destination vector if it changed or nil otherwise."
+  :version "24.4"
+  (unless (bool-vector-p a)
+    (signal 'wrong-type-argument (list 'bool-vector-p a)))
+  (unless (bool-vector-p b)
+    (signal 'wrong-type-argument (list 'bool-vector-p b)))
+  (unless (or (null c) (bool-vector-p c))
+    (signal 'wrong-type-argument (list 'bool-vector-p c)))
+  (when (/= (length a) (length b))
+    (signal 'wrong-length-argument (list (length a) (length b))))
+  (let ((dest (or c (make-bool-vector (length a) nil))) changed)
+    (when (/= (length a) (length dest))
+      (signal 'wrong-length-argument (list (length a) (length dest))))
+    (dotimes (i (length dest))
+      (let ((val (and (aref a i) (aref b i))))
+        (unless (eq val (aref dest i))
+          (setq changed t))
+        (aset dest i val)))
+    (if c (and changed c) dest)))
+
+(compat-defun bool-vector-set-difference (a b &optional c)
+  "Return A &~ B, set difference.
+If optional third argument C is given, store result into C.
+A, B, and C must be bool vectors of the same length.
+Return the destination vector if it changed or nil otherwise."
+  :version "24.4"
+  (unless (bool-vector-p a)
+    (signal 'wrong-type-argument (list 'bool-vector-p a)))
+  (unless (bool-vector-p b)
+    (signal 'wrong-type-argument (list 'bool-vector-p b)))
+  (unless (or (null c) (bool-vector-p c))
+    (signal 'wrong-type-argument (list 'bool-vector-p c)))
+  (when (/= (length a) (length b))
+    (signal 'wrong-length-argument (list (length a) (length b))))
+  (let ((dest (or c (make-bool-vector (length a) nil))) changed)
+    (when (/= (length a) (length dest))
+      (signal 'wrong-length-argument (list (length a) (length dest))))
+    (dotimes (i (length dest))
+      (let ((val (and (aref a i) (not (aref b i)))))
+        (unless (eq val (aref dest i))
+          (setq changed t))
+        (aset dest i val)))
+    (if c (and changed c) dest)))
+
+(compat-defun bool-vector-not (a &optional b)
+  "Compute ~A, set complement.
+If optional second argument B is given, store result into B.
+A and B must be bool vectors of the same length.
+Return the destination vector."
+  :version "24.4"
+  (unless (bool-vector-p a)
+    (signal 'wrong-type-argument (list 'bool-vector-p a)))
+  (unless (or (null b) (bool-vector-p b))
+    (signal 'wrong-type-argument (list 'bool-vector-p b)))
+  (let ((dest (or b (make-bool-vector (length a) nil))))
+    (when (/= (length a) (length dest))
+      (signal 'wrong-length-argument (list (length a) (length dest))))
+    (dotimes (i (length dest))
+      (aset dest i (not (aref a i))))
+    dest))
+
+(compat-defun bool-vector-subsetp (a b)
+  "Return t if every t value in A is also t in B, nil otherwise.
+A and B must be bool vectors of the same length."
+  :version "24.4"
+  (unless (bool-vector-p a)
+    (signal 'wrong-type-argument (list 'bool-vector-p a)))
+  (unless (bool-vector-p b)
+    (signal 'wrong-type-argument (list 'bool-vector-p b)))
+  (when (/= (length a) (length b))
+    (signal 'wrong-length-argument (list (length a) (length b))))
+  (catch 'not-subset
+    (dotimes (i (length a))
+      (when (if (aref a i) (not (aref b i)) nil)
+        (throw 'not-subset nil)))
+    t))
+
+(compat-defun bool-vector-count-consecutive (a b i)
+  "Count how many consecutive elements in A equal B starting at I.
+A is a bool vector, B is t or nil, and I is an index into A."
+  :version "24.4"
+  (unless (bool-vector-p a)
+    (signal 'wrong-type-argument (list 'bool-vector-p a)))
+  (setq b (and b t))                    ;normalise to nil or t
+  (unless (< i (length a))
+    (signal 'args-out-of-range (list a i)))
+  (let ((len (length a)) (n i))
+    (while (and (< i len) (eq (aref a i) b))
+      (setq i (1+ i)))
+    (- i n)))
+
+(compat-defun bool-vector-count-population (a)
+  "Count how many elements in A are t.
+A is a bool vector.  To count A's nil elements, subtract the
+return value from A's length."
+  :version "24.4"
+  (unless (bool-vector-p a)
+    (signal 'wrong-type-argument (list 'bool-vector-p a)))
+  (let ((n 0))
+    (dotimes (i (length a))
+      (when (aref a i)
+        (setq n (1+ n))))
+    n))
+
 ;;;; Defined in subr.el
 
+;;* UNTESTED
 (compat-defmacro with-eval-after-load (file &rest body)
   "Execute BODY after FILE is loaded.
 FILE is normally a feature name, but it can also be a file name,
@@ -163,6 +320,7 @@ non-nil."
         (setcdr last nil)))
   list)
 
+;;* UNTESTED
 (compat-defun define-error (name message &optional parent)
   "Define NAME as a new error signal.
 MESSAGE is a string that will be output to the echo area if such an error
@@ -184,8 +342,58 @@ Defaults to `error'."
          (delete-dups (copy-sequence (cons name conditions))))
     (when message (put name 'error-message message))))
 
+;;;; Defined in minibuffer.el
+
+;;* UNTESTED
+(compat-defun completion-table-with-cache (fun &optional ignore-case)
+  "Create dynamic completion table from function FUN, with cache.
+This is a wrapper for `completion-table-dynamic' that saves the last
+argument-result pair from FUN, so that several lookups with the
+same argument (or with an argument that starts with the first one)
+only need to call FUN once.  This can be useful when FUN performs a
+relatively slow operation, such as calling an external process.
+
+When IGNORE-CASE is non-nil, FUN is expected to be case-insensitive."
+  :version "24.4"
+  (let* (last-arg last-result
+         (new-fun
+          (lambda (arg)
+            (if (and last-arg (string-prefix-p last-arg arg ignore-case))
+                last-result
+              (prog1
+                  (setq last-result (funcall fun arg))
+                (setq last-arg arg))))))
+    (completion-table-dynamic new-fun)))
+
+;;* UNTESTED
+(compat-defun completion-table-merge (&rest tables)
+  "Create a completion table that collects completions from all TABLES."
+  :version "24.4"
+  (lambda (string pred action)
+    (cond
+     ((null action)
+      (let ((retvals (mapcar (lambda (table)
+                               (try-completion string table pred))
+                             tables)))
+        (if (member string retvals)
+            string
+          (try-completion string
+                          (mapcar (lambda (value)
+                                    (if (eq value t) string value))
+                                  (delq nil retvals))
+                          pred))))
+     ((eq action t)
+      (apply #'append (mapcar (lambda (table)
+                                (all-completions string table pred))
+                              tables)))
+     (t
+      (completion--some (lambda (table)
+                          (complete-with-action action table string pred))
+                        tables)))))
+
 ;;;; Defined in subr-x.el
 
+;;* UNTESTED
 (compat-advise require (feature &rest args)
   "Allow for Emacs 24.x to require the inexistent FEATURE subr-x."
   :version "24.4"
@@ -249,6 +457,58 @@ carriage return."
   (if (string-suffix-p suffix string)
       (substring string 0 (- (length string) (length suffix)))
     string))
+
+;;;; Defined in faces.el
+
+;;* UNTESTED
+(compat-defun face-spec-set (face spec &optional spec-type)
+  "Set the FACE's spec SPEC, define FACE, and recalculate its attributes.
+See `defface' for the format of SPEC.
+
+The appearance of each face is controlled by its specs (set via
+this function), and by the internal frame-specific face
+attributes (set via `set-face-attribute').
+
+This function also defines FACE as a valid face name if it is not
+already one, and (re)calculates its attributes on existing
+frames.
+
+The optional argument SPEC-TYPE determines which spec to set:
+  nil, omitted or `face-override-spec' means the override spec,
+    which overrides all the other types of spec mentioned below
+    (this is usually what you want if calling this function
+    outside of Custom code);
+  `customized-face' or `saved-face' means the customized spec or
+    the saved custom spec;
+  `face-defface-spec' means the default spec
+    (usually set only via `defface');
+  `reset' means to ignore SPEC, but clear the `customized-face'
+    and `face-override-spec' specs;
+Any other value means not to set any spec, but to run the
+function for defining FACE and recalculating its attributes."
+  :version "24.4"
+  (if (get face 'face-alias)
+      (setq face (get face 'face-alias)))
+  ;; Save SPEC to the relevant symbol property.
+  (unless spec-type
+    (setq spec-type 'face-override-spec))
+  (if (memq spec-type '(face-defface-spec face-override-spec
+			customized-face saved-face))
+      (put face spec-type spec))
+  (if (memq spec-type '(reset saved-face))
+      (put face 'customized-face nil))
+  ;; Setting the face spec via Custom empties out any override spec,
+  ;; similar to how setting a variable via Custom changes its values.
+  (if (memq spec-type '(customized-face saved-face reset))
+      (put face 'face-override-spec nil))
+  ;; If we reset the face based on its custom spec, it is unmodified
+  ;; as far as Custom is concerned.
+  (unless (eq face 'face-override-spec)
+    (put face 'face-modified nil))
+  ;; Initialize the face if it does not exist, then recalculate.
+  (make-empty-face face)
+  (dolist (frame (frame-list))
+    (face-spec-recalc face frame)))
 
 (provide 'compat-24)
 ;;; compat-24.el ends here

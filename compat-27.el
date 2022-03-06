@@ -52,7 +52,7 @@ is nil)."
   (when (listp object)
     (catch 'cycle
       (let ((hare object) (tortoise object)
-            (max 2) (q 2) )
+            (max 2) (q 2))
         (while (consp hare)
           (setq hare (cdr hare))
           (when (and (or (/= 0 (setq q (1- q)))
@@ -161,6 +161,7 @@ any JSON false values."
               (equal (json-parse-string "[]") nil))
           (json-unavailable t)
           (void-function t))
+  :realname compat--json-serialize
   (require 'json)
   (let ((json-false (or (plist-get args :false-object) :false))
         (json-null (or (plist-get args :null-object) :null)))
@@ -176,7 +177,7 @@ OBJECT."
               (equal (json-parse-string "[]") nil))
           (json-unavailable t)
           (void-function t))
-  (insert (apply #'json-serialize object args)))
+  (insert (apply #'compat--json-serialize object args)))
 
 (compat-defun json-parse-string (string &rest args)
   "Parse the JSON STRING into a Lisp object.
@@ -264,7 +265,7 @@ represent a JSON false value.  It defaults to `:false'."
 
 ;;;; Defined in subr.el
 
-(compat-defun setq-local (&rest pairs)
+(compat-defmacro setq-local (&rest pairs)
   "Handle multiple assignments."
   :prefix t
   (unless (zerop (mod (length pairs) 2))
@@ -279,6 +280,7 @@ represent a JSON false value.  It defaults to `:false'."
               body)))
     (cons 'progn (nreverse body))))
 
+;;* UNTESTED
 (compat-defmacro ignore-error (condition &rest body)
   "Execute BODY; if the error CONDITION occurs, return nil.
 Otherwise, return result of last form in BODY.
@@ -287,6 +289,7 @@ CONDITION can also be a list of error conditions."
   (declare (debug t) (indent 1))
   `(condition-case nil (progn ,@body) (,condition nil)))
 
+;;* UNTESTED
 (compat-defmacro dolist-with-progress-reporter (spec reporter-or-message &rest body)
   "Loop over a list and report progress in the echo area.
 Evaluate BODY with VAR bound to each car from LIST, in turn.
@@ -347,47 +350,56 @@ return nil."
 
 ;;;; Defined in simple.el
 
+;;* UNTESTED
 (compat-defun decoded-time-second (time)
   "The seconds in TIME, which is a value returned by `decode-time'.
 This is an integer between 0 and 60 (inclusive).  (60 is a leap
 second, which only some operating systems support.)"
   (nth 0 time))
 
+;;* UNTESTED
 (compat-defun decoded-time-minute (time)
   "The minutes in TIME, which is a value returned by `decode-time'.
 This is an integer between 0 and 59 (inclusive)."
   (nth 1 time))
 
+;;* UNTESTED
 (compat-defun decoded-time-hour (time)
   "The hours in TIME, which is a value returned by `decode-time'.
 This is an integer between 0 and 23 (inclusive)."
   (nth 2 time))
 
+;;* UNTESTED
 (compat-defun decoded-time-day (time)
   "The day-of-the-month in TIME, which is a value returned by `decode-time'.
 This is an integer between 1 and 31 (inclusive)."
   (nth 3 time))
 
+;;* UNTESTED
 (compat-defun decoded-time-month (time)
   "The month in TIME, which is a value returned by `decode-time'.
 This is an integer between 1 and 12 (inclusive).  January is 1."
   (nth 4 time))
 
+;;* UNTESTED
 (compat-defun decoded-time-year (time)
   "The year in TIME, which is a value returned by `decode-time'.
 This is a four digit integer."
   (nth 5 time))
 
+;;* UNTESTED
 (compat-defun decoded-time-weekday (time)
   "The day-of-the-week in TIME, which is a value returned by `decode-time'.
 This is a number between 0 and 6, and 0 is Sunday."
   (nth 6 time))
 
+;;* UNTESTED
 (compat-defun decoded-time-dst (time)
   "The daylight saving time in TIME, which is a value returned by `decode-time'.
 This is t if daylight saving time is in effect, and nil if not."
   (nth 7 time))
 
+;;* UNTESTED
 (compat-defun decoded-time-zone (time)
   "The time zone in TIME, which is a value returned by `decode-time'.
 This is an integer indicating the UTC offset in seconds, i.e.,
@@ -460,6 +472,7 @@ in all cases, since that is the standard symbol for byte."
 
 (declare-function lm-header "lisp-mnt")
 
+;;* UNTESTED
 (compat-defun package-get-version ()
   "Return the version number of the package in which this is used.
 Assumes it is used from an Elisp file placed inside the top-level directory

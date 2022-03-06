@@ -48,7 +48,7 @@
 (defun compat-func-arity (func)
   "A reimplementation of `func-arity' for FUNC."
   (cond
-   ((or (null func) (and (symbolp func) (not (fboundp func))) )
+   ((or (null func) (and (symbolp func) (not (fboundp func))))
     (signal 'void-function func))
    ((and (symbolp func) (not (null func)))
     (compat-func-arity (symbol-function func)))
@@ -153,6 +153,7 @@
                               compat-defun
                               compat-defmacro
                               compat-advise
+                              compat-defvar
                               defvar))
                   (push form defs))))))
         (cons 'progn (nreverse defs)))))))
