@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Philip Kaludercic <~pkal/compat-devel@lists.sr.ht>
+;; Maintainer: Compat Development <~pkal/compat-devel@lists.sr.ht>
 ;; Version: 28.1.0.0-rc
 ;; URL: https://git.sr.ht/~pkal/compat/
 ;; Package-Requires: ((emacs "24.1") (nadvice "0.3"))
@@ -43,88 +43,14 @@
 
 ;;;; Core functionality
 
-;; The implementation is extracted here so that compatibility advice
-;; can check if the right number of arguments are being handled.
-(defun compat-func-arity (func)
-  "A reimplementation of `func-arity' for FUNC."
-  (cond
-   ((or (null func) (and (symbolp func) (not (fboundp func))))
-    (signal 'void-function func))
-   ((and (symbolp func) (not (null func)))
-    (compat-func-arity (symbol-function func)))
-   ((eq (car-safe func) 'macro)
-    (compat-func-arity (cdr func)))
-   ((subrp func)
-    (subr-arity func))
-   ((memq (car-safe func) '(closure lambda))
-    ;; See lambda_arity from eval.c
-    (when (eq (car func) 'closure)
-      (setq func (cdr func)))
-    (let ((syms-left (if (consp func)
-                         (car func)
-                       (signal 'invalid-function func)))
-          (min-args 0) (max-args 0) optional)
-      (catch 'many
-        (dolist (next syms-left)
-          (cond
-           ((not (symbolp next))
-            (signal 'invalid-function func))
-           ((eq next '&rest)
-            (throw 'many (cons min-args 'many)))
-           ((eq next '&optional)
-            (setq optional t))
-           (t (unless optional
-                (setq min-args (1+ min-args)))
-              (setq max-args (1+ max-args)))))
-        (cons min-args max-args))))
-   ((and (byte-code-function-p func) (numberp (aref func 0)))
-    ;; See get_byte_code_arity from bytecode.c
-    (let ((at (aref func 0)))
-      (cons (logand at 127)
-            (if (= (logand at 128) 0)
-                (ash at -8)
-              'many))))
-   ((and (byte-code-function-p func) (numberp (aref func 0)))
-    ;; See get_byte_code_arity from bytecode.c
-    (let ((at (aref func 0)))
-      (cons (logand at 127)
-            (if (= (logand at 128) 0)
-                (ash at -8)
-              'many))))
-   ((and (byte-code-function-p func) (listp (aref func 0)))
-    ;; Based on `byte-compile-make-args-desc', this is required for
-    ;; old versions of Emacs that don't use a integer for the argument
-    ;; list description, per e2abe5a13dffb08d6371b6a611bc39c3a9ac2bc6.
-    (let ((arglist (aref func 0)) (mandatory 0) nonrest)
-      (while (and arglist (not (memq (car arglist) '(&optional &rest))))
-        (setq mandatory (1+ mandatory))
-        (setq arglist (cdr arglist)))
-      (setq nonrest mandatory)
-      (when (eq (car arglist) '&optional)
-        (setq arglist (cdr arglist))
-        (while (and arglist (not (eq (car arglist) '&rest)))
-          (setq nonrest (1+ nonrest))
-          (setq arglist (cdr arglist))))
-      (cons mandatory (if arglist 'many nonrest))))
-   ((autoloadp func)
-    (autoload-do-load func)
-    (compat-func-arity func))
-   ((signal 'invalid-function func))))
-
-(eval-and-compile
-  (defun compat-maxargs-/= (func n)
-    "Non-nil when FUNC doesn't accept at most N arguments."
-    (condition-case nil
-        (not (eq (cdr (compat-func-arity func)) n))
-      (void-function t))))
-
 ;; To accelerate the loading process, we insert the contents of
 ;; compat-N.M.el directly into the compat.elc.
 (eval-when-compile
   (defvar compat--generate-function)
   (defmacro compat-insert (version)
     (cond
-     ((bound-and-true-p compat-testing)
+     ((or (not (eq compat--generate-function 'compat--generate-minimal))
+          (bound-and-true-p compat-testing))
       `(load ,(format "compat-%s.el" version)))
      ;; ((version<= version emacs-version)
      ;;  ;; We don't need to do anything.
