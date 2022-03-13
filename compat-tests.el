@@ -71,9 +71,10 @@ being compared against."
   "Implementation for the `expect' macro for NAME.
 COMPAT is the name of the compatibility function the behaviour is
 being compared against."
-  (lambda (code &rest args)
+  (lambda (error-spec &rest args)
     (let ((real-test (intern (format "compat-%s-%04d-actual" name compat-test-counter)))
-          (comp-test (intern (format "compat-%s-%04d-compat" name compat-test-counter))))
+          (comp-test (intern (format "compat-%s-%04d-compat" name compat-test-counter)))
+          (error-type (if (consp error-spec) (car error-spec) error-spec)))
       (setq compat-test-counter (1+ compat-test-counter))
       (macroexp-progn
        (list (and (fboundp name)
@@ -85,7 +86,12 @@ being compared against."
                       :name ',real-test
                       :tags '(,name)
                       :body (lambda ()
-                              (should-error (,name ,@args) :type ,code))))))
+                              (should
+                               (let ((res (should-error (,name ,@args) :type ',error-type)))
+                                 (should
+                                  ,(if (consp error-spec)
+                                       `(equal res ',error-spec)
+                                     `(eq (car res) ',error-spec))))))))))
              (and (fboundp compat)
                   `(ert-set-test
                     ',comp-test
@@ -93,7 +99,12 @@ being compared against."
                      :name ',comp-test
                      :tags '(,name)
                      :body (lambda ()
-                             (should-error (,compat ,@args) :type ,code))))))))))
+                             (should
+                              (let ((res (should-error (,name ,@args) :type ',error-type)))
+                                (should
+                                 ,(if (consp error-spec)
+                                      `(equal res ',error-spec)
+                                    `(eq (car res) ',error-spec))))))))))))))
 
 (defmacro compat-deftest (name &rest body)
   "Test NAME in BODY."
@@ -183,20 +194,20 @@ being compared against."
   (ought 14 "o" (string-to-multibyte
                           (apply #'string (number-sequence ?a ?z))))
   (ought 2 "a\U00010f98z" "a\U00010f98a\U00010f98z")
-  (expect (args-out-of-range -1) "a" "abc" -1)
-  (expect (args-out-of-range 4) "a" "abc" 4)
-  (expect (args-out-of-range 100000000000)
+  (expect (args-out-of-range "abc" -1) "a" "abc" -1)
+  (expect (args-out-of-range "abc" 4) "a" "abc" 4)
+  (expect (args-out-of-range "abc" 100000000000)
                  "a" "abc" 100000000000)
   (ought nil "a" "aaa" 3)
   (ought nil "aa" "aa" 1)
   (ought nil "\0" "")
   (ought 0 "" "")
-  (expect (args-out-of-range 1) "" "" 1)
+  (expect (args-out-of-range "" 1) "" "" 1)
   (ought 0 "" "abc")
   (ought 2 "" "abc" 2)
   (ought 3 "" "abc" 3)
-  (expect (args-out-of-range 4) "" "abc" 4)
-  (expect (args-out-of-range -1) "" "abc" -1)
+  (expect (args-out-of-range "abc" 4) "" "abc" 4)
+  (expect (args-out-of-range "abc" -1) "" "abc" -1)
   (ought nil "ø" "foo\303\270")
   (ought nil "\303\270" "ø")
   (ought nil "\370" "ø")
@@ -226,7 +237,7 @@ being compared against."
                     (string-to-multibyte "o\303\270")
                     "foo\303\270")))
 
-(compat-deftest compat-string-search
+(compat-deftest string-search
   ;; Find needle at the beginning of a haystack:
   (ought 0 "a" "abb")
   ;; Find needle at the begining of a haystack, with more potential
@@ -299,18 +310,18 @@ being compared against."
                           (apply #'string (number-sequence ?a ?z))))
   (ought 2 "a\U00010f98z" "a\U00010f98a\U00010f98z")
   (expect (args-out-of-range -1) "a" "abc" -1)
-  (expect (args-out-of-range 4) "a" "abc" 4)
-  (expect (args-out-of-range 100000000000)
+  (expect (args-out-of-range "abc" 4) "a" "abc" 4)
+  (expect (args-out-of-range "abc" 100000000000)
                  "a" "abc" 100000000000)
   (ought nil "a" "aaa" 3)
   (ought nil "aa" "aa" 1)
   (ought nil "\0" "")
   (ought 0 "" "")
-  (expect (args-out-of-range 1) "" "" 1)
+  (expect (args-out-of-range "" 1) "" "" 1)
   (ought 0 "" "abc")
   (ought 2 "" "abc" 2)
   (ought 3 "" "abc" 3)
-  (expect (args-out-of-range 4) "" "abc" 4)
+  (expect (args-out-of-range "abc" 4) "" "abc" 4)
   (expect (args-out-of-range -1) "" "abc" -1)
   (ought nil "ø" "foo\303\270")
   (ought nil "\303\270" "ø")
