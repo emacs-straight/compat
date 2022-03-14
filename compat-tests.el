@@ -48,8 +48,8 @@
 COMPAT is the name of the compatibility function the behaviour is
 being compared against."
   (lambda (result &rest args)
-    (let ((real-test (intern (format "compat-%s-%04d-actual" name compat-test-counter)))
-          (comp-test (intern (format "compat-%s-%04d-compat" name compat-test-counter))))
+    (let ((real-test (intern (format "%s-%04d-actual" compat compat-test-counter)))
+          (comp-test (intern (format "%s-%04d-compat" compat compat-test-counter))))
       (setq compat-test-counter (1+ compat-test-counter))
       (macroexp-progn
        (list (and (fboundp name)
@@ -72,26 +72,24 @@ being compared against."
 COMPAT is the name of the compatibility function the behaviour is
 being compared against."
   (lambda (error-spec &rest args)
-    (let ((real-test (intern (format "compat-%s-%04d-actual" name compat-test-counter)))
-          (comp-test (intern (format "compat-%s-%04d-compat" name compat-test-counter)))
+    (let ((real-test (intern (format "%s-%04d-actual" compat compat-test-counter)))
+          (comp-test (intern (format "%s-%04d-compat" compat compat-test-counter)))
           (error-type (if (consp error-spec) (car error-spec) error-spec)))
       (setq compat-test-counter (1+ compat-test-counter))
       (macroexp-progn
        (list (and (fboundp name)
                   `(ert-set-test
                     ',real-test
-                    (ert-set-test
-                     ',real-test
-                     (make-ert-test
-                      :name ',real-test
-                      :tags '(,name)
-                      :body (lambda ()
-                              (should
-                               (let ((res (should-error (,name ,@args) :type ',error-type)))
-                                 (should
-                                  ,(if (consp error-spec)
-                                       `(equal res ',error-spec)
-                                     `(eq (car res) ',error-spec))))))))))
+                    (make-ert-test
+                     :name ',real-test
+                     :tags '(,name)
+                     :body (lambda ()
+                             (should
+                              (let ((res (should-error (,name ,@args) :type ',error-type)))
+                                (should
+                                 ,(if (consp error-spec)
+                                      `(equal res ',error-spec)
+                                    `(eq (car res) ',error-spec)))))))))
              (and (fboundp compat)
                   `(ert-set-test
                     ',comp-test
@@ -194,134 +192,19 @@ being compared against."
   (ought 14 "o" (string-to-multibyte
                           (apply #'string (number-sequence ?a ?z))))
   (ought 2 "a\U00010f98z" "a\U00010f98a\U00010f98z")
-  (expect (args-out-of-range "abc" -1) "a" "abc" -1)
-  (expect (args-out-of-range "abc" 4) "a" "abc" 4)
-  (expect (args-out-of-range "abc" 100000000000)
-                 "a" "abc" 100000000000)
-  (ought nil "a" "aaa" 3)
-  (ought nil "aa" "aa" 1)
-  (ought nil "\0" "")
-  (ought 0 "" "")
-  (expect (args-out-of-range "" 1) "" "" 1)
-  (ought 0 "" "abc")
-  (ought 2 "" "abc" 2)
-  (ought 3 "" "abc" 3)
-  (expect (args-out-of-range "abc" 4) "" "abc" 4)
-  (expect (args-out-of-range "abc" -1) "" "abc" -1)
-  (ought nil "ø" "foo\303\270")
-  (ought nil "\303\270" "ø")
-  (ought nil "\370" "ø")
-  (ought nil (string-to-multibyte "\370") "ø")
-  (ought nil "ø" "\370")
-  (ought nil "ø" (string-to-multibyte "\370"))
-  (ought nil "\303\270" "\370")
-  (ought nil (string-to-multibyte "\303\270") "\370")
-  (ought nil "\303\270" (string-to-multibyte "\370"))
-  (ought nil
-                  (string-to-multibyte "\303\270")
-                  (string-to-multibyte "\370"))
-  (ought nil "\370" "\303\270")
-  (ought nil (string-to-multibyte "\370") "\303\270")
-  (ought nil "\370" (string-to-multibyte "\303\270"))
-  (ought nil
-                  (string-to-multibyte "\370")
-                  (string-to-multibyte "\303\270"))
-  (ought 3 "\303\270" "foo\303\270")
-  (when (version<= "27" emacs-version)
-    ;; FIXME The commit a1f76adfb03c23bb4242928e8efe6193c301f0c1 in
-    ;; emacs.git fixes the behaviour of regular expressions matching
-    ;; raw bytes.  The compatibility functions should updated to
-    ;; backport this behaviour.
-    (ought 2 (string-to-multibyte "\377") "ab\377c")
-    (ought 2
-                    (string-to-multibyte "o\303\270")
-                    "foo\303\270")))
-
-(compat-deftest string-search
-  ;; Find needle at the beginning of a haystack:
-  (ought 0 "a" "abb")
-  ;; Find needle at the begining of a haystack, with more potential
-  ;; needles that could be found:
-  (ought 0 "a" "abba")
-  ;; Find needle with more than one charachter at the beginning of
-  ;; a line:
-  (ought 0 "aa" "aabbb")
-  ;; Find a needle midstring:
-  (ought 1 "a" "bab")
-  ;; Find a needle at the end:
-  (ought 2 "a" "bba")
-  ;; Find a longer needle midstring:
-  (ought 1 "aa" "baab")
-  ;; Find a longer needle at the end:
-  (ought 2 "aa" "bbaa")
-  ;; Find a case-sensitive needle:
-  (ought 2 "a" "AAa")
-  ;; Find another case-sensitive needle:
-  (ought 2 "aa" "AAaa")
-  ;; Test regular expression quoting (1):
-  (ought 5 "." "abbbb.b")
-  ;; Test regular expression quoting (2):
-  (ought 5 ".*" "abbbb.*b")
-  ;; Attempt to find non-existent needle:
-  (ought nil "a" "bbb")
-  ;; Attempt to find non-existent needle that has the form of a
-  ;; regular expression:
-  (ought nil "." "bbb")
-  ;; Handle empty string as needle:
-  (ought 0 "" "abc")
-  ;; Handle empty string as haystack:
-  (ought nil "a" "")
-  ;; Handle empty string as needle and haystack:
-  (ought 0 "" "")
-  ;; Handle START argument:
-  (ought 3 "a" "abba" 1)
-  ;; Additional test copied from:
-  (ought 6 "zot" "foobarzot")
-  (ought 0 "foo" "foobarzot")
-  (ought nil "fooz" "foobarzot")
-  (ought nil "zot" "foobarzo")
-  (ought 0 "ab" "ab")
-  (ought nil "ab\0" "ab")
-  (ought 4 "ab" "abababab" 3)
-  (ought nil "ab" "ababac" 3)
-  (ought nil "aaa" "aa")
-  ;; The `make-string' calls with three arguments have been replaced
-  ;; here with the result of their evaluation, to avoid issues with
-  ;; older versions of Emacs that only support two arguments.
-  (ought 5
-                  (make-string 2 130)
-                  ;; Per (concat "helló" (make-string 5 130 t) "bár")
-                  "hellóbár")
-  (ought 5
-                  (make-string 2 127)
-                  ;; Per (concat "helló" (make-string 5 127 t) "bár")
-                  "hellóbár")
-  (ought 1 "\377" "a\377ø")
-  (ought 1 "\377" "a\377a")
-  (ought nil (make-string 1 255) "a\377ø")
-  (ought nil (make-string 1 255) "a\377a")
-  (ought 3 "fóo" "zotfóo")
-  (ought nil "\303" "aøb")
-  (ought nil "\270" "aøb")
-  (ought nil "ø" "\303\270")
-  (ought nil "ø" (make-string 32 ?a))
-  (ought nil "ø" (string-to-multibyte (make-string 32 ?a)))
-  (ought 14 "o" (string-to-multibyte
-                          (apply #'string (number-sequence ?a ?z))))
-  (ought 2 "a\U00010f98z" "a\U00010f98a\U00010f98z")
   (expect (args-out-of-range -1) "a" "abc" -1)
-  (expect (args-out-of-range "abc" 4) "a" "abc" 4)
-  (expect (args-out-of-range "abc" 100000000000)
+  (expect (args-out-of-range 4) "a" "abc" 4)
+  (expect (args-out-of-range 100000000000)
                  "a" "abc" 100000000000)
   (ought nil "a" "aaa" 3)
   (ought nil "aa" "aa" 1)
   (ought nil "\0" "")
   (ought 0 "" "")
-  (expect (args-out-of-range "" 1) "" "" 1)
+  (expect (args-out-of-range 1) "" "" 1)
   (ought 0 "" "abc")
   (ought 2 "" "abc" 2)
   (ought 3 "" "abc" 3)
-  (expect (args-out-of-range "abc" 4) "" "abc" 4)
+  (expect (args-out-of-range 4) "" "abc" 4)
   (expect (args-out-of-range -1) "" "abc" -1)
   (ought nil "ø" "foo\303\270")
   (ought nil "\303\270" "ø")
@@ -529,21 +412,20 @@ being compared against."
   (ought '(1 2 3) '(1 2 3))                ;multiple element list
   (ought '(1) 1))                          ;atom
 
-(unless (version< emacs-version "26")
-  (compat-deftest (proper-list-p compat--proper-list-p-length-signal)
-    (ought 0 ())				;empty list
-    (ought 1 '(1))				;single element
-    (ought 3 '(1 2 3))			;multiple elements
-    (ought nil '(1 . 2))			;cons
-    (ought nil '(1 2 . 3))			;dotted
-    (ought nil (let ((l (list 1 2 3)))		;circular
-                 (setf (nthcdr 3 l) l)
-                 l))
-    (ought nil 1)                       ;non-lists
-    (ought nil "")
-    (ought nil "abc")
-    (ought nil [])
-    (ought nil [1 2 3])))
+(compat-deftest (proper-list-p compat--proper-list-p-length-signal)
+  (ought 0 ())				;empty list
+  (ought 1 '(1))				;single element
+  (ought 3 '(1 2 3))			;multiple elements
+  (ought nil '(1 . 2))			;cons
+  (ought nil '(1 2 . 3))			;dotted
+  (ought nil (let ((l (list 1 2 3)))		;circular
+               (setf (nthcdr 3 l) l)
+               l))
+  (ought nil 1)                       ;non-lists
+  (ought nil "")
+  (ought nil "abc")
+  (ought nil [])
+  (ought nil [1 2 3]))
 
 (compat-deftest (proper-list-p compat--proper-list-p-tortoise-hare)
   (ought 0 ())				;empty list
@@ -701,24 +583,22 @@ being compared against."
   (ought 'b 2 '(1 (2 . b) 3))
   (ought nil 2 '((1 . a) 2 (3 . c)))
   (ought 'a 1 '((3 . c) (2 . b) (1 . a)))
-  (ought nil "a" '(("a" . 1) ("b" . 2) ("c" . 3))))  ;non-primitive elements
-(when (version<= "26.1" emacs-version)
-  (compat-deftest (alist-get compat--alist-get-full-elisp)
-    ;; With testfn (advised behaviour):
-    (ought 1 "a" '(("a" . 1) ("b" . 2) ("c" . 3)) nil nil #'equal)
-    (ought 1 3 '((10 . 10) (4 . 4) (1 . 1) (9 . 9)) nil nil #'<)
-    (ought '(a) "b" '(("c" c) ("a" a) ("b" b)) nil nil #'string-lessp)
-    (ought 'c "a" '(("a" . a) ("a" . b) ("b" . c)) nil nil
-                    (lambda (s1 s2) (not (string= s1 s2))))
-    (ought 'emacs-lisp-mode
-                    "file.el"
-                    '(("\\.c\\'" . c-mode)
-                      ("\\.p\\'" . pascal-mode)
-                      ("\\.el\\'" . emacs-lisp-mode)
-                      ("\\.awk\\'" . awk-mode))
-                    nil nil #'string-match-p)
-    (ought 'd 0 '((1 . a) (2 . b) (3 . c)) 'd) ;default value
-    (ought 'd 2 '((1 . a) (2 . b) (3 . c)) 'd nil #'ignore)))
+  (ought nil "a" '(("a" . 1) ("b" . 2) ("c" . 3))) ;non-primitive elements
+  ;; With testfn (advised behaviour):
+  (ought 1 "a" '(("a" . 1) ("b" . 2) ("c" . 3)) nil nil #'equal)
+  (ought 1 3 '((10 . 10) (4 . 4) (1 . 1) (9 . 9)) nil nil #'<)
+  (ought '(a) "b" '(("c" c) ("a" a) ("b" b)) nil nil #'string-lessp)
+  (ought 'c "a" '(("a" . a) ("a" . b) ("b" . c)) nil nil
+         (lambda (s1 s2) (not (string= s1 s2))))
+  (ought 'emacs-lisp-mode
+         "file.el"
+         '(("\\.c\\'" . c-mode)
+           ("\\.p\\'" . pascal-mode)
+           ("\\.el\\'" . emacs-lisp-mode)
+           ("\\.awk\\'" . awk-mode))
+         nil nil #'string-match-p)
+  (ought 'd 0 '((1 . a) (2 . b) (3 . c)) 'd) ;default value
+  (ought 'd 2 '((1 . a) (2 . b) (3 . c)) 'd nil #'ignore))
 
 (compat-deftest string-trim-left'
   (ought "" "")                          ;empty string
@@ -1183,43 +1063,43 @@ being compared against."
              100000))
   (should (= (compat--named-let l ((i 0) (x 1)) (if (= i 8) x (l (1+ i) (* x 2))))
              (expt 2 8)))
-  (should (eq (compat--named-let loop ((x 1))
+  (should (eq (compat--named-let lop ((x 1))
                 (if (> x 0)
                     (condition-case nil
-                        (loop (1- x))
+                        (lop (1- x))
                       (arith-error 'ok))
                   (/ 1 x)))
               'ok))
-  (should (eq (compat--named-let loop ((n 10000))
+  (should (eq (compat--named-let lop ((n 10000))
                 (if (> n 0)
                     (condition-case nil
                         (/ n 0)
-                      (arith-error (loop (1- n))))
+                      (arith-error (lop (1- n))))
                   'ok))
               'ok))
-  (should (eq (compat--named-let loop ((x nil))
+  (should (eq (compat--named-let lop ((x nil))
                 (cond (x)
                       (t 'ok)))
               'ok))
-  (should (eq (compat--named-let loop ((x 100000))
+  (should (eq (compat--named-let lop ((x 100000))
                 (cond ((= x 0) 'ok)
-                      ((loop (1- x)))))
+                      ((lop (1- x)))))
               'ok))
-  (should (eq (compat--named-let loop ((x 100000))
+  (should (eq (compat--named-let lop ((x 100000))
                 (cond
                  ((= x -1) nil)
                  ((= x 0) 'ok)
-                 ((loop -1))
-                 ((loop (1- x)))))
+                 ((lop -1))
+                 ((lop (1- x)))))
               'ok))
-  (should (eq (compat--named-let loop ((x 10000))
+  (should (eq (compat--named-let lop ((x 10000))
                 (cond ((= x 0) 'ok)
-                      ((and t (loop (1- x))))))
+                      ((and t (lop (1- x))))))
               'ok))
   (should (eq (eval
-               (let ((branch '((loop (and (setq b (not b)) (1+ i))))))
+               (let ((branch '((lop (and (setq b (not b)) (1+ i))))))
                  `(let ((b t))
-                    (compat--named-let loop ((i 0))
+                    (compat--named-let lop ((i 0))
                       (cond ((null i) nil)
                             ((= i 10000) 'ok)
                             ,branch
@@ -1533,7 +1413,7 @@ being compared against."
   (ought  3 (bool-vector t nil t t))
   (expect wrong-type-argument (vector)))
 
-(compat-deftest assoc-delete-all
+(compat-deftest compat-assoc-delete-all
   (ought (list) 0 (list))
   ;; Test `eq'
   (ought '((1 . one)) 0 (list (cons 1 'one)))

@@ -54,6 +54,9 @@ ignored:
 - :cond :: Only install the compatibility code, iff the value
   evaluates to non-nil.
 
+  For prefixed functions, this can be interpreted as a test to
+  `defalias' an existing definition or not.
+
 - :no-highlight :: Do not highlight this definition as
   compatibility function.
 
@@ -104,17 +107,28 @@ DEF-FN, INSTALL-FN, CHECK-FN, ATTR and TYPE."
                   '(compat--ignore))
                  (`(when (and ,(if cond cond t)
                               ,(funcall check-fn)))))))
-    (if (and (not (plist-get attr :prefix))
-             (plist-get attr :realname))
-        `(progn
-           ,(funcall def-fn realname version)
-           (,@check
-            ,(let ((body (funcall install-fn realname version)))
-               (if feature
-                   ;; See https://nullprogram.com/blog/2018/02/22/:
-                   `(eval-after-load ,feature `(funcall ',(lambda () ,body)))
-                 body))))
-      (let* ((body (if (eq type 'advice)
+    (cond
+     ((and (plist-get attr :prefix) (memq type '(func macro))
+           (string-match "\\`compat-\\(.+\\)\\'" (symbol-name name))
+           (let* ((actual-name (intern (match-string 1 (symbol-name name))))
+                  (body (funcall install-fn actual-name  version)))
+             (when (and (or (null cond) (eval cond t))
+                        (fboundp actual-name))
+               `(,@check
+                 ,(if feature
+                      ;; See https://nullprogram.com/blog/2018/02/22/:
+                      `(eval-after-load ,feature `(funcall ',(lambda () ,body)))
+                    body))))))
+     ((plist-get attr :realname)
+      `(progn
+         ,(funcall def-fn realname version)
+         (,@check
+          ,(let ((body (funcall install-fn realname version)))
+             (if feature
+                 ;; See https://nullprogram.com/blog/2018/02/22/:
+                 `(eval-after-load ,feature `(funcall ',(lambda () ,body)))
+               body)))))
+     ((let* ((body (if (eq type 'advice)
                        `(,@check
                          ,(funcall def-fn realname version)
                          ,(funcall install-fn realname version))
@@ -122,7 +136,7 @@ DEF-FN, INSTALL-FN, CHECK-FN, ATTR and TYPE."
         (if feature
             ;; See https://nullprogram.com/blog/2018/02/22/:
             `(eval-after-load ,feature `(funcall ',(lambda () ,body)))
-          body)))))
+          body))))))
 
 (defun compat--generate-minimal-no-prefix (name def-fn install-fn check-fn attr type)
   "Generate a leaner compatibility definition.
