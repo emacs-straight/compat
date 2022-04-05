@@ -33,7 +33,6 @@
 ;;; Code:
 
 (require 'ert)
-(require 'nadvice)
 
 (require 'compat-macs)
 (defvar compat-testing)
@@ -48,11 +47,13 @@
 COMPAT is the name of the compatibility function the behaviour is
 being compared against."
   (lambda (result &rest args)
-    (let ((real-test (intern (format "%s-%04d-actual" compat compat-test-counter)))
-          (comp-test (intern (format "%s-%04d-compat" compat compat-test-counter))))
+    (let ((real-test (intern (format "%s-%04d-actual/ought" compat compat-test-counter)))
+          (comp-test (intern (format "%s-%04d-compat/ought" compat compat-test-counter))))
       (setq compat-test-counter (1+ compat-test-counter))
       (macroexp-progn
        (list (and (fboundp name)
+                  (or (not (get compat 'compat-version))
+                      (version<= emacs-version (get compat 'compat-version)))
                   `(ert-set-test
                     ',real-test
                     (make-ert-test
@@ -72,12 +73,14 @@ being compared against."
 COMPAT is the name of the compatibility function the behaviour is
 being compared against."
   (lambda (error-spec &rest args)
-    (let ((real-test (intern (format "%s-%04d-actual" compat compat-test-counter)))
-          (comp-test (intern (format "%s-%04d-compat" compat compat-test-counter)))
+    (let ((real-test (intern (format "%s-%04d-actual/expect" compat compat-test-counter)))
+          (comp-test (intern (format "%s-%04d-compat/expect" compat compat-test-counter)))
           (error-type (if (consp error-spec) (car error-spec) error-spec)))
       (setq compat-test-counter (1+ compat-test-counter))
       (macroexp-progn
        (list (and (fboundp name)
+                  (or (not (get compat 'compat-version))
+                      (version<= emacs-version (get compat 'compat-version)))
                   `(ert-set-test
                     ',real-test
                     (make-ert-test
@@ -116,7 +119,13 @@ being compared against."
          (env (list
                (cons 'ought (compat--ought real-name compat-name))
                (cons 'expect (compat--expect real-name compat-name)))))
-    (macroexpand-all (macroexp-progn body) (append env macroexpand-all-environment))))
+    (and (or (not (get compat-name 'compat-min-version))
+             (version< (get compat-name 'compat-min-version) emacs-version))
+         (or (not (get compat-name 'compat-max-version))
+             (version< emacs-version (get compat-name 'compat-max-version)))
+         (macroexpand-all
+          (macroexp-progn body)
+          (append env macroexpand-all-environment)))))
 
 
 
@@ -1290,8 +1299,9 @@ being compared against."
     (compat--bool-vector-exclusive-or a b c)
     (should (equal (bool-vector nil t t nil) c))
     (should (equal (bool-vector nil t t nil) c))
-    (expect wrong-length-argument a (bool-vector))
-    (expect wrong-length-argument a b (bool-vector))
+    (when (version<= "24.4" emacs-version)
+      (expect (wrong-length-argument 4 0) a (bool-vector))
+      (expect (wrong-length-argument 4 0) a b (bool-vector)))
     (expect wrong-type-argument (bool-vector) (vector))
     (expect wrong-type-argument (vector) (bool-vector))
     (expect wrong-type-argument (vector) (vector))
@@ -1308,8 +1318,9 @@ being compared against."
     (ought (bool-vector t t t nil) b a)
     (compat--bool-vector-union a b c)
     (should (equal (bool-vector t t t nil) c))
-    (expect wrong-length-argument a (bool-vector))
-    (expect wrong-length-argument a b (bool-vector))
+    (when (version<= "24.4" emacs-version)
+      (expect wrong-length-argument a (bool-vector))
+      (expect wrong-length-argument a b (bool-vector)))
     (expect wrong-type-argument (bool-vector) (vector))
     (expect wrong-type-argument (vector) (bool-vector))
     (expect wrong-type-argument (vector) (vector))
@@ -1326,8 +1337,9 @@ being compared against."
     (ought (bool-vector t nil nil nil) b a)
     (compat--bool-vector-intersection a b c)
     (should (equal (bool-vector t nil nil nil) c))
-    (expect wrong-length-argument a (bool-vector))
-    (expect wrong-length-argument a b (bool-vector))
+    (when (version<= "24.4" emacs-version)
+      (expect wrong-length-argument a (bool-vector))
+      (expect wrong-length-argument a b (bool-vector)))
     (expect wrong-type-argument (bool-vector) (vector))
     (expect wrong-type-argument (vector) (bool-vector))
     (expect wrong-type-argument (vector) (vector))
@@ -1346,8 +1358,9 @@ being compared against."
     (should (equal (bool-vector nil t nil nil) c))
     (compat--bool-vector-set-difference b a c)
     (should (equal (bool-vector nil nil t nil) c))
-    (expect wrong-length-argument a (bool-vector))
-    (expect wrong-length-argument a b (bool-vector))
+    (when (version<= "24.4" emacs-version)
+      (expect wrong-length-argument a (bool-vector))
+      (expect wrong-length-argument a b (bool-vector)))
     (expect wrong-type-argument (bool-vector) (vector))
     (expect wrong-type-argument (vector) (bool-vector))
     (expect wrong-type-argument (vector) (vector))
@@ -1379,7 +1392,8 @@ being compared against."
   (ought t (bool-vector nil nil) (bool-vector nil t))
   (ought nil (bool-vector t nil) (bool-vector nil nil))
   (ought nil (bool-vector nil t) (bool-vector nil nil))
-  (expect wrong-length-argument (bool-vector nil) (bool-vector nil nil))
+  (when (version<= "24.4" emacs-version)
+    (expect wrong-length-argument (bool-vector nil) (bool-vector nil nil)))
   (expect wrong-type-argument (bool-vector) (vector))
   (expect wrong-type-argument (vector) (bool-vector))
   (expect wrong-type-argument (vector) (vector)))
