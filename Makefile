@@ -13,7 +13,7 @@ BYTEC = compat-help.elc \
 	compat-28.elc \
 	compat.elc
 
-all: compile compat.info
+all: compile
 
 compile: $(BYTEC)
 
@@ -28,7 +28,6 @@ clean:
 
 compat.texi: MANUAL
 	$(EMACS) -Q --batch $< -f org-texinfo-export-to-texinfo --kill
-	mv $<.texi $@
 
 compat.info: compat.texi
 	$(MAKEINFO) $<
