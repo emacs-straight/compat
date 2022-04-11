@@ -163,20 +163,13 @@ If COUNT is non-nil and a natural number, the function will
 
 ;;;; Defined in json.c
 
+(declare-function json-insert nil (object &rest args))
 (declare-function json-serialize nil (object &rest args))
 (declare-function json-parse-string nil (string &rest args))
+(declare-function json-parse-buffer nil (&rest args))
 
 (compat-defun json-serialize (object &rest args)
   "Handle top-level JSON values."
-  :cond (condition-case err
-            ;; Use `random' to prevent byte compiler from optimising
-            ;; the "pure" `json-serialize' call.
-            (ignore (json-serialize (if (random) 0 0)))
-          (wrong-type-argument (eq (cadr err) 'json-value-p))
-          ;; `json-serialize' might be disabled at compile time, so we
-          ;; have to check if an error was raised that the function
-          ;; was not defined.
-          (void-function (eq (cadr err) 'json-serialize)))
   :prefix t
   :min-version "27"
   (if (or (listp object) (vectorp object))
@@ -185,15 +178,6 @@ If COUNT is non-nil and a natural number, the function will
 
 (compat-defun json-insert (object &rest args)
   "Handle top-level JSON values."
-  :cond (condition-case err
-            ;; Use `random' to prevent byte compiler from optimising
-            ;; the "pure" `json-serialize' call.
-            (ignore (json-serialize (if (random) 0 0)))
-          (wrong-type-argument (eq (cadr err) 'json-value-p))
-          ;; `json-serialize' might be disabled at compile time, so we
-          ;; have to check if an error was raised that the function
-          ;; was not defined.
-          (void-function (eq (cadr err) 'json-serialize)))
   :prefix t
   :min-version "27"
   (if (or (listp object) (vectorp object))
@@ -202,15 +186,6 @@ If COUNT is non-nil and a natural number, the function will
 
 (compat-defun json-parse-string (string &rest args)
   "Handle top-level JSON values."
-  :cond (condition-case err
-            ;; Use `random' to prevent byte compiler from optimising
-            ;; the "pure" `json-serialize' call.
-            (ignore (json-parse-string (if (random) "0" "0")))
-          (json-parse-error t)
-          ;; `json-parse-string' might be disabled at compile time, so
-          ;; we have to check if an error was raised that the function
-          ;; was not defined.
-          (void-function (eq (cadr err) 'json-parse-error)))
   :prefix t
   :min-version "27"
   (if (string-match-p "\\`[[:space:]]*[[{]" string)
@@ -222,15 +197,6 @@ If COUNT is non-nil and a natural number, the function will
 
 (compat-defun json-parse-buffer (&rest args)
   "Handle top-level JSON values."
-  :cond (condition-case err
-            ;; Use `random' to prevent byte compiler from optimising
-            ;; the "pure" `json-serialize' call.
-            (ignore (json-parse-string (if (random) "0" "0")))
-          (json-parse-error t)
-          ;; `json-parse-string' might be disabled at compile time, so
-          ;; we have to check if an error was raised that the function
-          ;; was not defined.
-          (void-function (eq (cadr err) 'json-parse-error)))
   :prefix t
   :min-version "27"
   (if (looking-at-p "[[:space:]]*[[{]")
