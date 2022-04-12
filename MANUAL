@@ -229,6 +229,13 @@ provided by Compat by default:
 - Variable: mounted-file-systems ::  Defined in ~files.el~.
 - Function: temporary-file-directory :: See [[info:elisp#Unique File Names][(elisp) Unique File Names]].
 - Macro: and-let* :: Defined in ~subr-x.el~.
+- Function: file-local-name :: See [[info:elisp#Magic File Names][(elisp) Magic File Names]].
+- Function: file-name-quoted-p :: See [[info:elisp#File Name Expansion][(elisp) File Name Expansion]].
+- Function: file-name-quote :: See [[info:elisp#File Name Expansion][(elisp) File Name Expansion]].
+- Function: image-property :: Defined in ~image.el~.
+
+  This function can also be used as a generalised variable.  To use
+  this you need to explicitly require ~compat-26~.
 
 These functions are prefixed with ~compat~ prefix, and are only loaded
 when ~compat-26~ is required:
@@ -241,7 +248,8 @@ when ~compat-26~ is required:
   Handle the optional argument ABSOLUTE.
 - Function: compat-alist-get :: See [[info:elisp#Association Lists][(elisp) Association Lists]].
 
-  Handle the optional argument TESTFN.
+  Handle the optional argument TESTFN.  Can also be used as a
+  generalised variable.
 
 Compat does not provide support for the following Lisp features
 implemented in 26.1:
@@ -311,6 +319,12 @@ when ~compat-27~ is required:
 - Function: compat-assoc-delete-all :: See [[info:elisp#Association Lists][(elisp) Association Lists]].
 
   Handle the optional third (TESTFN) argument.
+- Function: compat-executable-find :: [[info:elisp#Locating Files][(elisp) Locating Files]].
+
+  Handle the optional second (REMOTE) argument.
+- Function: compat-dired-get-marked-files :: Defined in ~dired.el~
+
+  Handles the optional fifth (ERROR) argument.
 
 Compat does not provide support for the following Lisp features
 implemented in 27.1:

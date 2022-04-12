@@ -464,6 +464,27 @@ in all cases, since that is the standard symbol for byte."
               (if (string= prefixed-unit "") "" (or space ""))
               prefixed-unit))))
 
+(declare-function compat--file-name-quote "compat-26"
+                  (name &optional top))
+
+;;;*UNTESTED
+(compat-defun executable-find (command &optional remote)
+  "Search for COMMAND in `exec-path' and return the absolute file name.
+Return nil if COMMAND is not found anywhere in `exec-path'.  If
+REMOTE is non-nil, search on the remote host indicated by
+`default-directory' instead."
+  :prefix t
+  (if (and remote (file-remote-p default-directory))
+      (let ((res (locate-file
+                  command
+                  (mapcar
+                   (apply-partially
+                    #'concat (file-remote-p default-directory))
+                   (exec-path))
+                  exec-suffixes 'file-executable-p)))
+        (when (stringp res) (file-local-name res)))
+    (executable-find command)))
+
 ;; TODO provide advice for directory-files-recursively
 
 ;;;; Defined in format-spec.el
@@ -526,6 +547,24 @@ The return value is a string (or nil in case we can’t find it)."
             (insert-file-contents mainfile)
             (or (lm-header "package-version")
                 (lm-header "version")))))))))
+
+
+;;;; Defined in dired.el
+
+(declare-function
+ dired-get-marked-files "dired.el"
+ (&optional localp arg filter distinguish-one-marked error))
+
+;;* UNTESTED
+(compat-defun dired-get-marked-files
+    (&optional localp arg filter distinguish-one-marked error)
+  "Return the marked files’ names as list of strings."
+  :feature 'dired
+  :prefix t
+  (let ((result (dired-get-marked-files localp arg filter distinguish-one-marked)))
+    (if (and (null result) error)
+        (user-error (if (stringp error) error "No files specified"))
+      result)))
 
 (provide 'compat-27)
 ;;; compat-27.el ends here

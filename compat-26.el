@@ -153,6 +153,37 @@ from the absolute start of the buffer, disregarding the narrowing."
       (compat--alist-get-full-elisp key alist default remove testfn)
     (alist-get key alist default remove)))
 
+(gv-define-expander compat-alist-get
+  (lambda (do key alist &optional default remove testfn)
+    (macroexp-let2 macroexp-copyable-p k key
+      (gv-letplace (getter setter) alist
+        (macroexp-let2 nil p `(if (and ,testfn (not (eq ,testfn 'eq)))
+                                  (assoc ,k ,getter ,testfn)
+                                (assq ,k ,getter))
+          (funcall do (if (null default) `(cdr ,p)
+                        `(if ,p (cdr ,p) ,default))
+                   (lambda (v)
+                     (macroexp-let2 nil v v
+                       (let ((set-exp
+                              `(if ,p (setcdr ,p ,v)
+                                 ,(funcall setter
+                                           `(cons (setq ,p (cons ,k ,v))
+                                                  ,getter)))))
+                         `(progn
+                            ,(cond
+                              ((null remove) set-exp)
+                              ((or (eql v default)
+                                   (and (eq (car-safe v) 'quote)
+                                        (eq (car-safe default) 'quote)
+                                        (eql (cadr v) (cadr default))))
+                               `(if ,p ,(funcall setter `(delq ,p ,getter))))
+                              (t
+                               `(cond
+                                 ((not (eql ,default ,v)) ,set-exp)
+                                 (,p ,(funcall setter
+                                               `(delq ,p ,getter))))))
+                            ,v))))))))))
+
 (compat-defun string-trim-left (string &optional regexp)
   "Trim STRING of leading string matching REGEXP.
 
@@ -345,6 +376,33 @@ same meaning as in `make-temp-file'."
          "^" (regexp-opt '("/afs/" "/media/" "/mnt" "/net/" "/tmp_mnt/")))))
   "File systems that ought to be mounted.")
 
+(compat-defun file-local-name (file)
+  "Return the local name component of FILE.
+This function removes from FILE the specification of the remote host
+and the method of accessing the host, leaving only the part that
+identifies FILE locally on the remote system.
+The returned file name can be used directly as argument of
+`process-file', `start-file-process', or `shell-command'."
+  :realname compat--file-local-name
+  (or (file-remote-p file 'localname) file))
+
+(compat-defun file-name-quoted-p (name &optional top)
+  "Whether NAME is quoted with prefix \"/:\".
+If NAME is a remote file name and TOP is nil, check the local part of NAME."
+  :realname compat--file-name-quoted-p
+  (let ((file-name-handler-alist (unless top file-name-handler-alist)))
+    (string-prefix-p "/:" (compat--file-local-name name))))
+
+(compat-defun file-name-quote (name &optional top)
+  "Add the quotation prefix \"/:\" to file NAME.
+If NAME is a remote file name and TOP is nil, the local part of
+NAME is quoted.  If NAME is already a quoted file name, NAME is
+returned unchanged."
+  (let ((file-name-handler-alist (unless top file-name-handler-alist)))
+    (if (compat--file-name-quoted-p name top)
+        name
+      (concat (file-remote-p name) "/:" (compat--file-local-name name)))))
+
 ;;* UNTESTED
 (compat-defun temporary-file-directory ()
   "The directory for writing temporary files.
@@ -373,6 +431,33 @@ are non-nil, then the result is non-nil."
   :feature 'subr-x
   (declare (indent 1) (debug if-let*))
   `(when-let* ,varlist ,@(or body '(t))))
+
+;;;; Defined in image.el
+
+;;* UNTESTED
+(compat-defun image-property (image property)
+  "Return the value of PROPERTY in IMAGE.
+Properties can be set with
+
+  (setf (image-property IMAGE PROPERTY) VALUE)
+
+If VALUE is nil, PROPERTY is removed from IMAGE."
+  (plist-get (cdr image) property))
+
+;;* UNTESTED
+(gv-define-simple-setter
+ image-property
+ (lambda (image property value)
+   (if (null value)
+       (while (cdr image)
+         ;; IMAGE starts with the symbol `image', and the rest is a
+         ;; plist.  Decouple plist entries where the key matches
+         ;; the property.
+         (if (eq (cadr image) property)
+             (setcdr image (cdddr image))
+           (setq image (cddr image))))
+     ;; Just enter the new value.
+     (setcdr image (plist-put (cdr image) property value)))))
 
 (provide 'compat-26)
 ;;; compat-26.el ends here
