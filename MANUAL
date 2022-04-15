@@ -12,7 +12,7 @@
 #+macro: version 28.1.0.0
 #+link:	 debbugs https://debbugs.gnu.org/cgi/bugreport.cgi?bug=
 
-This manual documents the usage of the "compat" Emacs lisp library,
+This manual documents the usage of the "Compat" Emacs lisp library,
 the forward-compatibility library for Emacs Lisp, corresponding to
 version {{{version}}}.
 
@@ -20,7 +20,7 @@ version {{{version}}}.
 
 * Introduction
 ** Overview
-The objective of compat is to provide "forwards compatibility"
+The objective of Compat is to provide "forwards compatibility"
 library for Emacs Lisp.  That is to say by using Compat, an Elisp
 package does not have to make the decision to either use new and
 useful functionality or support old versions of Emacs.
@@ -190,10 +190,6 @@ when ~compat-25~ is required:
 - Function: compat-sort :: See [[info:elisp#Sequence Functions][(elisp) Sequence Functions]].
 
   Adds support for vectors to be sorted, next to just lists.
-- Function: completion-pcm--all-completions :: Defined in
-  ~minibuffer.el~.
-
-  Reverse the resulting completion list, as fixed by [[debbugs:24676]].
 
 Compat does not provide support for the following Lisp features
 implemented in 25.1:
@@ -302,6 +298,10 @@ provided by Compat by default:
 - Function: decoded-time-dst :: Defined in ~simple.el~.
 - Function: decoded-time-zone :: Defined in ~simple.el~.
 - Function: package-get-version :: Defined in ~package.el~.
+- Function: time-equal-p :: See [[info:elisp#Time Calculations][(elisp) Time Calculations]].
+- Function: date-days-in-month :: See [[info:elisp#Time Calculations][(elisp) Time Calculations]].
+
+  This function requires the ~time-date~ feature to be loaded.
 
 These functions are prefixed with ~compat~ prefix, and are only loaded
 when ~compat-27~ is required:
@@ -337,8 +337,6 @@ implemented in 27.1:
 - Bigint support.
 - The function ~time-convert~.
 - All ~iso8601-*~ functions.
-- The function ~time-equal-p~.
-- The function ~date-days-in-month~.
 - The macro ~benchmark-progn~.
 - The function ~read-char-from-minibuffer~.
 - The minor mode ~reveal-mode~.
@@ -395,6 +393,8 @@ provided by Compat by default:
 - Function: file-modes-number-to-symbolic :: See [[info:elisp#Changing Files][(elisp) Changing
   Files]].
 - Function: file-backup-file-names :: See [[info:elisp#Backup Names][(elisp) Backup Names]].
+- Function: make-lock-file-name :: Defined in ~files.el~.
+- Function: null-device :: Defined in ~files.el~.
 
 These functions are prefixed with ~compat~ prefix, and are only loaded
 when ~compat-28~ is required:

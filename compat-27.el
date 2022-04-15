@@ -265,6 +265,24 @@ represent a JSON false value.  It defaults to `:false'."
         (json-read))
     (json-error (signal 'json-parse-buffer err))))
 
+;;;; Defined in timefns.c
+
+(compat-defun time-equal-p (t1 t2)
+  "Return non-nil if time value T1 is equal to time value T2.
+A nil value for either argument stands for the current time."
+  :note "This function is not as accurate as the actual `time-equal-p'."
+  (cond
+   ((eq t1 t2))
+   ((and (consp t1) (consp t2))
+    (equal t1 t2))
+   ((let ((now (current-time)))
+      ;; Due to inaccuracies and the relatively slow evaluating of
+      ;; Emacs Lisp compared to C, we allow for slight inaccuracies
+      ;; (less than a millisecond) when comparing time values.
+      (< (abs (- (float-time (or t1 now))
+                 (float-time (or t2 now))))
+         1e-5)))))
+
 ;;;; Defined in subr.el
 
 (compat-defmacro setq-local (&rest pairs)
@@ -565,6 +583,21 @@ The return value is a string (or nil in case we can’t find it)."
     (if (and (null result) error)
         (user-error (if (stringp error) error "No files specified"))
       result)))
+
+;;;; Defined in time-date.el
+
+(compat-defun date-days-in-month (year month)
+  "The number of days in MONTH in YEAR."
+  :feature 'time-date
+  (unless (and (numberp month) (<= 1 month 12))
+    (error "Month %s is invalid" month))
+  (if (= month 2)
+      (if (date-leap-year-p year)
+          29
+        28)
+    (if (memq month '(1 3 5 7 8 10 12))
+        31
+      30)))
 
 (provide 'compat-27)
 ;;; compat-27.el ends here

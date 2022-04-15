@@ -625,7 +625,7 @@ being compared against."
     (should (equal (compat-alist-get "one" alist-2 nil nil #'string=)
                    "eins"))))
 
-(compat-deftest string-trim-left'
+(compat-deftest string-trim-left
   (ought "" "")                          ;empty string
   (ought "a" "a")                        ;"full" string
   (ought "aaa" "aaa")
@@ -1614,6 +1614,50 @@ being compared against."
   (ought "/:/a" "/a")
   (ought "/:a" "/:a")
   (ought (concat "/ssh:" (system-name) ":/:a") "/ssh::a"))
+
+(compat-deftest make-lock-file-name
+  (ought (expand-file-name ".#") "")
+  (ought (expand-file-name ".#a") "a")
+  (ought (expand-file-name ".#foo") "foo")
+  (ought (expand-file-name ".#.") ".")
+  (ought (expand-file-name ".#.#") ".#")
+  (ought (expand-file-name ".#.a") ".a")
+  (ought (expand-file-name ".#.#") ".#")
+  (ought (expand-file-name "a/.#") "a/")
+  (ought (expand-file-name "a/.#b") "a/b")
+  (ought (expand-file-name "a/.#.#") "a/.#")
+  (ought (expand-file-name "a/.#.") "a/.")
+  (ought (expand-file-name "a/.#.b") "a/.b")
+  (ought (expand-file-name "a/.#foo") "a/foo")
+  (ought (expand-file-name "bar/.#b") "bar/b")
+  (ought (expand-file-name "bar/.#foo") "bar/foo"))
+
+(compat-deftest time-equal-p
+  (ought t nil nil)
+  (ought t (current-time) nil)
+  (ought t nil (current-time))
+  ;; While `sleep-for' returns nil, indicating the current time, this
+  ;; behaviour seems to be undefined.  Relying on it is therefore not
+  ;; advised.
+  (ought nil (current-time) (ignore (sleep-for 0.01)))
+  (ought nil (current-time) (progn
+                              (sleep-for 0.01)
+                              (current-time)))
+  (ought t '(1 2 3 4) '(1 2 3 4))
+  (ought nil '(1 2 3 4) '(1 2 3 5))
+  (ought nil '(1 2 3 5) '(1 2 3 4))
+  (ought nil '(1 2 3 4) '(1 2 4 4))
+  (ought nil '(1 2 4 4) '(1 2 3 4))
+  (ought nil '(1 2 3 4) '(1 3 3 4))
+  (ought nil '(1 3 3 4) '(1 2 3 4))
+  (ought nil '(1 2 3 4) '(2 2 3 4))
+  (ought nil '(2 2 3 4) '(1 2 3 4)))
+
+(compat-deftest date-days-in-month
+  (ought 31 2020 1)
+  (ought 30 2020 4)
+  (ought 29 2020 2)
+  (ought 28 2021 2))
 
 (provide 'compat-tests)
 ;;; compat-tests.el ends here
