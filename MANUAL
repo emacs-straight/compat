@@ -9,7 +9,7 @@
 #+texinfo_dir_desc:     Compatibility Library for Emacs Lisp
 #+options:              compact-itemx:t
 
-#+macro: version 28.1.0.0
+#+macro: version 28.1.0.5
 #+link:	 debbugs https://debbugs.gnu.org/cgi/bugreport.cgi?bug=
 
 This manual documents the usage of the "Compat" Emacs lisp library,
@@ -45,7 +45,7 @@ Feedback on this point is appreciated.
 The intended use-case for this library is for package developers to
 add as a dependency in the header:
 
-: ;; Package-Requires: ((emacs "24.3") (compat "28.1.0.0"))
+: ;; Package-Requires: ((emacs "24.3") (compat "28.1.0.5"))
 
 and later on a
 
@@ -109,6 +109,9 @@ This section goes into the features that Compat manages and doesn't
 manage to provide for each Emacs version.
 
 ** Emacs 24.4
+:PROPERTIES:
+:DESCRIPTION: Compatibility support for Emacs 24.4
+:END:
 The following functions and macros implemented in 24.4, and are
 provided by Compat by default:
 
@@ -163,8 +166,15 @@ implemented in 24.4:
 - Support for generators.
 
 ** Emacs 24.5
+:PROPERTIES:
+:DESCRIPTION: Compatibility support for Emacs 24.5
+:END:
+
 No special support for 24.5 was deemed necessary.
 ** Emacs 25.1
+:PROPERTIES:
+:DESCRIPTION: Compatibility support for Emacs 25.1
+:END:
 The following functions and macros implemented in 25.1, and are
 provided by Compat by default:
 
@@ -212,7 +222,13 @@ implemented in 25.1:
 - The function ~set-binary-mode~.
 - The functions ~bufferpos-to-filepos~ and ~filepos-to-bufferpos~.
 
+Note that the changes in Emacs 25.2 and 25.3 are also included here,
+for the sake of simplicity.
+
 ** Emacs 26.1
+:PROPERTIES:
+:DESCRIPTION: Compatibility support for Emacs 26.1
+:END:
 The following functions and macros implemented in 26.1, and are
 provided by Compat by default:
 
@@ -273,7 +289,13 @@ implemented in 26.1:
 - All changes related to ~display-buffer~.
 - The function ~window-swap-states~.
 
+Note that the changes in Emacs 26.2 and 26.3 are also included here,
+for the sake of simplicity.
+
 ** Emacs 27.1
+:PROPERTIES:
+:DESCRIPTION: Compatibility support for Emacs 27.1
+:END:
 The following functions and macros implemented in 27.1, and are
 provided by Compat by default:
 
@@ -300,6 +322,7 @@ provided by Compat by default:
 - Function: package-get-version :: Defined in ~package.el~.
 - Function: time-equal-p :: See [[info:elisp#Time Calculations][(elisp) Time Calculations]].
 - Function: date-days-in-month :: See [[info:elisp#Time Calculations][(elisp) Time Calculations]].
+- Function: exec-path :: See [[info:elisp#Subprocess Creation][(elisp) Subprocess Creation]].
 
   This function requires the ~time-date~ feature to be loaded.
 
@@ -354,7 +377,13 @@ implemented in 27.1:
 - The macro ~with-connection-local-variables~ and related
   functionality.
 
+Note that the changes in Emacs 27.2 are also included here, for the
+sake of simplicity.
+
 ** Emacs 28.1
+:PROPERTIES:
+:DESCRIPTION: Compatibility support for Emacs 28.1
+:END:
 The following functions and macros implemented in 28.1, and are
 provided by Compat by default:
 

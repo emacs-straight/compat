@@ -4,7 +4,7 @@
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Compat Development <~pkal/compat-devel@lists.sr.ht>
-;; Version: 28.1.0.3
+;; Version: 28.1.0.5
 ;; URL: https://sr.ht/~pkal/compat
 ;; Package-Requires: ((emacs "24.3") (nadvice "0.3"))
 ;; Keywords: lisp
@@ -44,27 +44,19 @@
 ;;;; Core functionality
 
 ;; To accelerate the loading process, we insert the contents of
-;; compat-N.M.el directly into the compat.elc.
+;; compat-N.M.el directly into the compat.elc.  Note that by default
+;; this will not include prefix functions.  These have to be required
+;; separately, by explicitly requiring the feature that defines them.
 (eval-when-compile
   (defvar compat--generate-function)
-  (defmacro compat-insert (version)
+  (defmacro compat-entwine (version)
     (cond
      ((or (not (eq compat--generate-function 'compat--generate-minimal))
           (bound-and-true-p compat-testing))
-      `(load ,(format "compat-%s.el" version)))
+      `(load ,(format "compat-%d.el" version)))
      ((let* ((compat--generate-function 'compat--generate-minimal-no-prefix)
-             (file (expand-file-name
-                    (format "compat-%s.el" version)
-                    (file-name-directory
-                     (or (and (boundp 'load-file-name)
-                              load-file-name)
-                         (and (boundp 'byte-compile-current-file)
-                              byte-compile-current-file)
-                         buffer-file-name))))
-             (byte-compile-current-file file)
+             (file (format "compat-%d.el" version))
              defs)
-        (unless (file-exists-p file)
-          (error "Cannot load %S" file))
         (let ((load-file-name file))
           (with-temp-buffer
             (insert-file-contents file)
@@ -81,13 +73,17 @@
                               compat-defvar
                               defvar))
                   (push form defs))))))
-        (cons 'progn (nreverse defs)))))))
+        
+        (let ((byte-compile-current-file file))
+          (macroexpand-all
+           (macroexp-progn
+            (nreverse defs)))))))))
 
-(compat-insert "24")
-(compat-insert "25")
-(compat-insert "26")
-(compat-insert "27")
-(compat-insert "28")
+(compat-entwine 24)
+(compat-entwine 25)
+(compat-entwine 26)
+(compat-entwine 27)
+(compat-entwine 28)
 
 (provide 'compat)
 ;;; compat.el ends here

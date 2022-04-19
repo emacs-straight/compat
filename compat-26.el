@@ -40,13 +40,14 @@ FUNC must be a function of some kind.
 The returned value is a cons cell (MIN . MAX).  MIN is the minimum number
 of args.  MAX is the maximum number, or the symbol ‘many’, for a
 function with ‘&rest’ args, or ‘unevalled’ for a special form."
+  :realname compat--func-arity
   (cond
    ((or (null func) (and (symbolp func) (not (fboundp func))))
     (signal 'void-function func))
    ((and (symbolp func) (not (null func)))
-    (compat-func-arity (symbol-function func)))
+    (compat--func-arity (symbol-function func)))
    ((eq (car-safe func) 'macro)
-    (compat-func-arity (cdr func)))
+    (compat--func-arity (cdr func)))
    ((subrp func)
     (subr-arity func))
    ((memq (car-safe func) '(closure lambda))
@@ -101,7 +102,7 @@ function with ‘&rest’ args, or ‘unevalled’ for a special form."
       (cons mandatory (if arglist 'many nonrest))))
    ((autoloadp func)
     (autoload-do-load func)
-    (compat-func-arity func))
+    (compat--func-arity func))
    ((signal 'invalid-function func))))
 
 ;;;; Defined in fns.c
@@ -430,7 +431,7 @@ Like `when-let*', except if BODY is empty and all the bindings
 are non-nil, then the result is non-nil."
   :feature 'subr-x
   (declare (indent 1) (debug if-let*))
-  `(when-let* ,varlist ,@(or body '(t))))
+  `(compat--when-let* ,varlist ,@(or body '(t))))
 
 ;;;; Defined in image.el
 
@@ -453,7 +454,7 @@ If VALUE is nil, PROPERTY is removed from IMAGE."
           ;; plist.  Decouple plist entries where the key matches
           ;; the property.
           (if (eq (cadr image) property)
-              (setcdr image (cdddr image))
+              (setcdr image (nthcdr 3 image))
             (setq image (cddr image))))
       ;; Just enter the new value.
       (setcdr image (plist-put (cdr image) property value)))))

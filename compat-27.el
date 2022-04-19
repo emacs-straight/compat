@@ -485,7 +485,20 @@ in all cases, since that is the standard symbol for byte."
 (declare-function compat--file-name-quote "compat-26"
                   (name &optional top))
 
-;;;*UNTESTED
+;;*UNTESTED
+(compat-defun exec-path ()
+  "Return list of directories to search programs to run in remote subprocesses.
+The remote host is identified by `default-directory'.  For remote
+hosts that do not support subprocesses, this returns nil.
+If `default-directory' is a local directory, this function returns
+the value of the variable `exec-path'."
+  :realname compat--exec-path
+  (let ((handler (find-file-name-handler default-directory 'exec-path)))
+    (if handler
+        (funcall handler 'exec-path)
+      exec-path)))
+
+;;*UNTESTED
 (compat-defun executable-find (command &optional remote)
   "Search for COMMAND in `exec-path' and return the absolute file name.
 Return nil if COMMAND is not found anywhere in `exec-path'.  If
@@ -498,9 +511,9 @@ REMOTE is non-nil, search on the remote host indicated by
                   (mapcar
                    (apply-partially
                     #'concat (file-remote-p default-directory))
-                   (exec-path))
+                   (compat--exec-path))
                   exec-suffixes 'file-executable-p)))
-        (when (stringp res) (file-local-name res)))
+        (when (stringp res) (compat--file-local-name res)))
     (executable-find command)))
 
 ;; TODO provide advice for directory-files-recursively
@@ -589,7 +602,9 @@ The return value is a string (or nil in case we can’t find it)."
 (compat-defun date-days-in-month (year month)
   "The number of days in MONTH in YEAR."
   :feature 'time-date
-  (unless (and (numberp month) (<= 1 month 12))
+  (unless (and (numberp month)
+               (<= 1 month)
+               (<= month 12))
     (error "Month %s is invalid" month))
   (if (= month 2)
       (if (date-leap-year-p year)
