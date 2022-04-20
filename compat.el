@@ -1,6 +1,6 @@
 ;;; compat.el --- Compatibility Library              -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021 Free Software Foundation, Inc.
+;; Copyright (C) 2021, 2022 Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Compat Development <~pkal/compat-devel@lists.sr.ht>
@@ -55,25 +55,31 @@
           (bound-and-true-p compat-testing))
       `(load ,(format "compat-%d.el" version)))
      ((let* ((compat--generate-function 'compat--generate-minimal-no-prefix)
-             (file (format "compat-%d.el" version))
+             (file (expand-file-name
+                    (format "compat-%d.el" version)
+                    (file-name-directory
+                     (or (bound-and-true-p byte-compile-current-file)
+                         load-file-name
+                         (buffer-file-name)))))
              defs)
-        (let ((load-file-name file))
-          (with-temp-buffer
-            (insert-file-contents file)
-            (emacs-lisp-mode)
-            (while (progn
-                     (forward-comment 1)
-                     (not (eobp)))
-              (let ((form (read (current-buffer))))
-                (when (memq (car-safe form)
-                            '(declare-function
-                              compat-defun
-                              compat-defmacro
-                              compat-advise
-                              compat-defvar
-                              defvar))
-                  (push form defs))))))
-        
+        (with-temp-buffer
+          (insert-file-contents file)
+          (emacs-lisp-mode)
+          (while (progn
+                   (forward-comment 1)
+                   (not (eobp)))
+            (let ((form (read (current-buffer))))
+              (when (memq (car-safe form)
+                          '(declare-function
+                            compat-defun
+                            compat-defmacro
+                            compat-advise
+                            compat-defvar
+                            defvar))
+                (push form defs)))))
+        ;; We bind `byte-compile-current-file' before macro-expanding,
+        ;; so that `compat--generate-function' can correctly infer the
+        ;; compatibility version currently being processed.
         (let ((byte-compile-current-file file))
           (macroexpand-all
            (macroexp-progn
