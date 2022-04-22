@@ -9,7 +9,7 @@
 #+texinfo_dir_desc:     Compatibility Library for Emacs Lisp
 #+options:              compact-itemx:t
 
-#+macro: version 28.1.0.5
+#+macro: version 28.1.1.0
 #+link:	 debbugs https://debbugs.gnu.org/cgi/bugreport.cgi?bug=
 
 This manual documents the usage of the "Compat" Emacs lisp library,
@@ -45,7 +45,7 @@ Feedback on this point is appreciated.
 The intended use-case for this library is for package developers to
 add as a dependency in the header:
 
-: ;; Package-Requires: ((emacs "24.3") (compat "28.1.0.5"))
+: ;; Package-Requires: ((emacs "24.3") (compat "28.1.1.0"))
 
 and later on a
 
@@ -164,6 +164,9 @@ implemented in 24.4:
 - The ~get-pos-property~ function.
 - The ~define-advice~ macro.
 - Support for generators.
+- The ~string-trim~, ~string-trim-left~ and ~string-trim-right~
+  functions.  These are instead provided as prefixed function as part
+  of [[*Emacs 26.1][Emacs 26.1]] support.
 
 ** Emacs 24.5
 :PROPERTIES:
@@ -232,9 +235,6 @@ provided by Compat by default:
 
 - Function: func-arity :: See [[info:elisp#What Is a Function][(elisp) What Is a Function]].
 - Function: mapcan :: See [[info:elisp#Mapping Functions][(elisp) Mapping Functions]].
-- Function: string-trim-left :: See [[info:elisp#Creating Strings][(elisp) Creating Strings]].
-- Function: string-trim-right :: See [[info:elisp#Creating Strings][(elisp) Creating Strings]].
-- Function: string-trim :: See [[info:elisp#Creating Strings][(elisp) Creating Strings]].
 - Function: cXXXr ::
 - Function: cXXXXr ::
   See [[info:elisp#List Elements][(elisp) List Elements]].
@@ -253,6 +253,18 @@ provided by Compat by default:
 
   This function can also be used as a generalised variable.  To use
   this you need to explicitly require ~compat-26~.
+- Function: file-attribute-type :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-link-number :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-user-id :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-group-id :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-access-time :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-modification-time :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-status-change-time :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-size :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-modes :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-inode-number :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-device-number :: See [[info:elisp#File Attributes][(elisp) File Attributes]].
+- Function: file-attribute-collect :: Defined in ~files.el~.
 
 These functions are prefixed with ~compat~ prefix, and are only loaded
 when ~compat-26~ is required:
@@ -267,6 +279,15 @@ when ~compat-26~ is required:
 
   Handle the optional argument TESTFN.  Can also be used as a
   generalised variable.
+- Function: compat-string-trim-left :: See [[info:elisp#Creating Strings][(elisp) Creating Strings]].
+
+  Handles the optional argument REGEXP.
+- Function: compat-string-trim-right :: See [[info:elisp#Creating Strings][(elisp) Creating Strings]].
+
+  Handles the optional argument REGEXP.
+- Function: compat-string-trim :: See [[info:elisp#Creating Strings][(elisp) Creating Strings]].
+
+  Handles the optional arguments TRIM-LEFT and TRIM-RIGHT.
 
 Compat does not provide support for the following Lisp features
 implemented in 26.1:

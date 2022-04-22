@@ -4,7 +4,7 @@
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Compat Development <~pkal/compat-devel@lists.sr.ht>
-;; Version: 28.1.0.5
+;; Version: 28.1.1.0-pre
 ;; URL: https://sr.ht/~pkal/compat
 ;; Package-Requires: ((emacs "24.3") (nadvice "0.3"))
 ;; Keywords: lisp
@@ -70,22 +70,24 @@
           (while (progn
                    (forward-comment 1)
                    (not (eobp)))
-            (let ((form (read (current-buffer))))
-              (when (memq (car-safe form)
-                          '(declare-function
-                            compat-defun
-                            compat-defmacro
-                            compat-advise
-                            compat-defvar
-                            defvar))
-                (push form defs)))))
-        ;; We bind `byte-compile-current-file' before macro-expanding,
-        ;; so that `compat--generate-function' can correctly infer the
-        ;; compatibility version currently being processed.
-        (let ((byte-compile-current-file file))
-          (macroexpand-all
-           (macroexp-progn
-            (nreverse defs)))))))))
+            ;; We bind `byte-compile-current-file' before
+            ;; macro-expanding, so that `compat--generate-function'
+            ;; can correctly infer the compatibility version currently
+            ;; being processed.
+            (let ((byte-compile-current-file file)
+                  (form (read (current-buffer))))
+              (cond
+               ((memq (car-safe form)
+                      '(compat-defun
+                           compat-defmacro
+                           compat-advise
+                         compat-defvar))
+                (push (macroexpand-all form) defs))
+               ((memq (car-safe form)
+                      '(declare-function
+                        defvar))
+                (push form defs))))))
+        (macroexp-progn (nreverse defs)))))))
 
 (compat-entwine 24)
 (compat-entwine 25)

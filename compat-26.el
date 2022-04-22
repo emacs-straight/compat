@@ -190,6 +190,7 @@ from the absolute start of the buffer, disregarding the narrowing."
 
 REGEXP defaults to \"[ \\t\\n\\r]+\"."
   :realname compat--string-trim-left
+  :prefix t
   (if (string-match (concat "\\`\\(?:" (or regexp "[ \t\n\r]+") "\\)") string)
       (substring string (match-end 0))
     string))
@@ -199,6 +200,7 @@ REGEXP defaults to \"[ \\t\\n\\r]+\"."
 
 REGEXP defaults to  \"[ \\t\\n\\r]+\"."
   :realname compat--string-trim-right
+  :prefix t
   (let ((i (string-match-p
             (concat "\\(?:" (or regexp "[ \t\n\r]+") "\\)\\'")
             string)))
@@ -208,6 +210,7 @@ REGEXP defaults to  \"[ \\t\\n\\r]+\"."
   "Trim STRING of leading with and trailing matching TRIM-LEFT and TRIM-RIGHT.
 
 TRIM-LEFT and TRIM-RIGHT default to \"[ \\t\\n\\r]+\"."
+  :prefix t
   ;; `string-trim-left' and `string-trim-right' were moved from subr-x
   ;; to subr in Emacs 27, so to avoid loading subr-x we use the
   ;; compatibility function here:
@@ -422,6 +425,106 @@ the variable `temporary-file-directory' is returned."
           default-directory
         temporary-file-directory))))
 
+;;* UNTESTED
+(compat-defun file-attribute-type (attributes)
+  "The type field in ATTRIBUTES returned by `file-attributes'.
+The value is either t for directory, string (name linked to) for
+symbolic link, or nil."
+  (nth 0 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-link-number (attributes)
+  "Return the number of links in ATTRIBUTES returned by `file-attributes'."
+  (nth 1 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-user-id (attributes)
+  "The UID field in ATTRIBUTES returned by `file-attributes'.
+This is either a string or a number.  If a string value cannot be
+looked up, a numeric value, either an integer or a float, is
+returned."
+  (nth 2 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-group-id (attributes)
+  "The GID field in ATTRIBUTES returned by `file-attributes'.
+This is either a string or a number.  If a string value cannot be
+looked up, a numeric value, either an integer or a float, is
+returned."
+  (nth 3 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-access-time (attributes)
+  "The last access time in ATTRIBUTES returned by `file-attributes'.
+This a Lisp timestamp in the style of `current-time'."
+  (nth 4 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-modification-time (attributes)
+  "The modification time in ATTRIBUTES returned by `file-attributes'.
+This is the time of the last change to the file's contents, and
+is a Lisp timestamp in the style of `current-time'."
+  (nth 5 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-status-change-time (attributes)
+  "The status modification time in ATTRIBUTES returned by `file-attributes'.
+This is the time of last change to the file's attributes: owner
+and group, access mode bits, etc., and is a Lisp timestamp in the
+style of `current-time'."
+  (nth 6 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-size (attributes)
+  "The integer size (in bytes) in ATTRIBUTES returned by `file-attributes'."
+  (nth 7 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-modes (attributes)
+  "The file modes in ATTRIBUTES returned by `file-attributes'.
+This is a string of ten letters or dashes as in ls -l."
+  (nth 8 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-inode-number (attributes)
+  "The inode number in ATTRIBUTES returned by `file-attributes'.
+It is a nonnegative integer."
+  (nth 10 attributes))
+
+;;* UNTESTED
+(compat-defun file-attribute-device-number (attributes)
+  "The file system device number in ATTRIBUTES returned by `file-attributes'.
+It is an integer."
+  (nth 11 attributes))
+
+(compat-defun file-attribute-collect (attributes &rest attr-names)
+  "Return a sublist of ATTRIBUTES returned by `file-attributes'.
+ATTR-NAMES are symbols with the selected attribute names.
+
+Valid attribute names are: type, link-number, user-id, group-id,
+access-time, modification-time, status-change-time, size, modes,
+inode-number and device-number."
+  (let ((idx '((type . 0)
+               (link-number . 1)
+               (user-id . 2)
+               (group-id . 3)
+               (access-time . 4)
+               (modification-time . 5)
+               (status-change-time . 6)
+               (size . 7)
+               (modes . 8)
+               (inode-number . 10)
+               (device-number . 11)))
+        result)
+    (while attr-names
+      (let ((attr (pop attr-names)))
+        (if (assq attr idx)
+            (push (nth (cdr (assq attr idx))
+                       attributes)
+                  result)
+          (error "Wrong attribute name '%S'" attr))))
+    (nreverse result)))
+
 ;;;; Defined in subr-x.el
 
 (compat-defmacro if-let* (varlist then &rest else)
@@ -476,7 +579,7 @@ are non-nil, then the result is non-nil."
       (when (or (cdr var) (consp (car var)))
         (setq last (caar list))))
     `(let* ,(nreverse list)
-       (if ,(caar list) ,(macroexp-progn body)))))
+       (if ,(caar list) ,(macroexp-progn (or body '(t)))))))
 
 ;;;; Defined in image.el
 
@@ -492,7 +595,7 @@ If VALUE is nil, PROPERTY is removed from IMAGE."
 
 ;;* UNTESTED
 (unless (get 'image-property 'gv-expander)
-  (gv-define-setter site/image-property (image property value)
+  (gv-define-setter image-property (image property value)
     (let ((image* (make-symbol "image"))
           (property* (make-symbol "property"))
           (value* (make-symbol "value")))

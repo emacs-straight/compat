@@ -31,7 +31,7 @@ modify this GNU manual.”
 @finalout
 @titlepage
 @title "Compat" Manual
-@subtitle For version 28.1.0.5
+@subtitle For version 28.1.1.0
 @author Philip Kaludercic
 @page
 @vskip 0pt plus 1filll
@@ -46,7 +46,7 @@ modify this GNU manual.”
 
 This manual documents the usage of the "Compat" Emacs lisp library,
 the forward-compatibility library for Emacs Lisp, corresponding to
-version 28.1.0.5.
+version 28.1.1.0.
 
 @insertcopying
 @end ifnottex
@@ -123,7 +123,7 @@ The intended use-case for this library is for package developers to
 add as a dependency in the header:
 
 @example
-;; Package-Requires: ((emacs "24.3") (compat "28.1.0.5"))
+;; Package-Requires: ((emacs "24.3") (compat "28.1.1.0"))
 @end example
 
 
@@ -346,6 +346,10 @@ The @code{get-pos-property} function.
 The @code{define-advice} macro.
 @item
 Support for generators.
+@item
+The @code{string-trim}, @code{string-trim-left} and @code{string-trim-right}
+functions.  These are instead provided as prefixed function as part
+of @ref{Emacs 26.1} support.
 @end itemize
 
 @node Emacs 24.5
@@ -473,18 +477,6 @@ See @ref{What Is a Function,(elisp) What Is a Function,,elisp,}.
 See @ref{Mapping Functions,(elisp) Mapping Functions,,elisp,}.
 @end defun
 
-@defun string-trim-left
-See @ref{Creating Strings,(elisp) Creating Strings,,elisp,}.
-@end defun
-
-@defun string-trim-right
-See @ref{Creating Strings,(elisp) Creating Strings,,elisp,}.
-@end defun
-
-@defun string-trim
-See @ref{Creating Strings,(elisp) Creating Strings,,elisp,}.
-@end defun
-
 @defun cXXXr
 @end defun
 @defun cXXXXr
@@ -542,6 +534,54 @@ This function can also be used as a generalised variable.  To use
 this you need to explicitly require @code{compat-26}.
 @end defun
 
+@defun file-attribute-type
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-link-number
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-user-id
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-group-id
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-access-time
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-modification-time
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-status-change-time
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-size
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-modes
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-inode-number
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-device-number
+See @ref{File Attributes,(elisp) File Attributes,,elisp,}.
+@end defun
+
+@defun file-attribute-collect
+Defined in @code{files.el}.
+@end defun
+
 These functions are prefixed with @code{compat} prefix, and are only loaded
 when @code{compat-26} is required:
 
@@ -562,6 +602,24 @@ See @ref{Association Lists,(elisp) Association Lists,,elisp,}.
 
 Handle the optional argument TESTFN@.  Can also be used as a
 generalised variable.
+@end defun
+
+@defun compat-string-trim-left
+See @ref{Creating Strings,(elisp) Creating Strings,,elisp,}.
+
+Handles the optional argument REGEXP@.
+@end defun
+
+@defun compat-string-trim-right
+See @ref{Creating Strings,(elisp) Creating Strings,,elisp,}.
+
+Handles the optional argument REGEXP@.
+@end defun
+
+@defun compat-string-trim
+See @ref{Creating Strings,(elisp) Creating Strings,,elisp,}.
+
+Handles the optional arguments TRIM-LEFT and TRIM-RIGHT@.
 @end defun
 
 Compat does not provide support for the following Lisp features
