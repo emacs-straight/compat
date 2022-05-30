@@ -170,8 +170,9 @@ In you specify the same value for `:null-object' and `:false-object',
 a potentially ambiguous situation, the JSON output will not contain
 any JSON false values."
   :cond (not (condition-case nil
-                 (json-serialize t)
+                 (equal (json-serialize '()) "{}")
                (:success t)
+               (void-function nil)
                (json-unavailable nil)))
   :realname compat--json-serialize
   (require 'json)
@@ -230,8 +231,9 @@ This is the same as (insert (json-serialize OBJECT)), but potentially
 faster.  See the function `json-serialize' for allowed values of
 OBJECT."
   :cond (not (condition-case nil
-                 (json-serialize t)
+                 (equal (json-serialize '()) "{}")
                (:success t)
+               (void-function nil)
                (json-unavailable nil)))
   (insert (apply #'compat--json-serialize object args)))
 
@@ -260,8 +262,9 @@ to represent a JSON null value.  It defaults to `:null'.
 The keyword argument `:false-object' specifies which object to use to
 represent a JSON false value.  It defaults to `:false'."
   :cond (not (condition-case nil
-                 (json-serialize t)
+                 (equal (json-serialize '()) "{}")
                (:success t)
+               (void-function nil)
                (json-unavailable nil)))
   (require 'json)
   (condition-case err
@@ -303,8 +306,9 @@ to represent a JSON null value.  It defaults to `:null'.
 The keyword argument `:false-object' specifies which object to use to
 represent a JSON false value.  It defaults to `:false'."
   :cond (not (condition-case nil
-                 (json-serialize t)
+                 (equal (json-serialize '()) "{}")
                (:success t)
+               (void-function nil)
                (json-unavailable nil)))
   (require 'json)
   (condition-case err
