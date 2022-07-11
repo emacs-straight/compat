@@ -1013,6 +1013,10 @@ Defined in @code{files.el}.
 Defined in @code{files.el}.
 @end defun
 
+@defun decoded-time-period
+Defined in @code{time-data.el}.
+@end defun
+
 These functions are prefixed with @code{compat} prefix, and are only loaded
 when @code{compat-28} is required:
 
