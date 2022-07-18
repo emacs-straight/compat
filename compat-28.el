@@ -447,13 +447,9 @@ not a list, return a one-element list containing OBJECT."
       object
     (list object)))
 
-
-(declare-function subr-native-elisp-p nil (object))
 (compat-defun subr-primitive-p (object)
   "Return t if OBJECT is a built-in primitive function."
-  (and (subrp object)
-       (not (and (fboundp 'subr-native-elisp-p)
-		 (subr-native-elisp-p object)))))
+  (subrp object))
 
 ;;;; Defined in subr-x.el
 
@@ -879,5 +875,5 @@ are 30 days long."
      (* (or (nth 4 time) 0) 60 60 24 30)
      (* (or (nth 5 time) 0) 60 60 24 365)))
 
-(provide 'compat-28)
+(compat--inhibit-prefixed (provide 'compat-28))
 ;;; compat-28.el ends here
