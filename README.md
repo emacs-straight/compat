@@ -11,7 +11,7 @@ for users bound to specific Emacs releases.
 
 Version 24.3 is chosen as the oldest version, because this is the
 newest version on CentOS 7. It is intended to preserve compatibility
-for at least as the Centos 7 reaches [EOL], 2024.
+for at least as the CentOS 7 reaches [EOL], 2024.
 
 If you are developing a package with compat.el in mind, consider
 loading `compat-help` (on your system, not in a package) to get
@@ -38,7 +38,7 @@ Usage
 The intended use-case for this library is for package developers to
 add as a dependency in the header:
 
-    ;; Package-Requires: ((emacs "24.3") (compat "28.1.1.3"))
+    ;; Package-Requires: ((emacs "24.3") (compat "28.1.2.0"))
 
 and later on a
 
