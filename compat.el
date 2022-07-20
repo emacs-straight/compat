@@ -39,14 +39,6 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'compat-macs))
-
-;; We load all the components of Compat with a copied value of
-;; `features' list, that will prevent the list being modified, and all
-;; the files can be loaded again.  This is done so that
-;; `compat--inhibit-prefixed' can take effect when loading `compat',
-;; and do nothing when loading each sub-feature manually.
-
 (defvar compat--inhibit-prefixed)
 (let ((compat--inhibit-prefixed (not (bound-and-true-p compat-testing))))
   ;; Instead of using `require', we manually check `features' and call
@@ -55,7 +47,9 @@
   ;; that the file can be loaded again at some later point when the
   ;; prefixed definitions are needed).
   (dolist (vers '(24 25 26 27 28))
-    (unless (memq (intern (format "compat-%d" vers)) features)
+    (when (and (or (bound-and-true-p compat-testing)
+                   (< vers emacs-major-version))
+               (not (memq (intern (format "compat-%d" vers)) features)))
       (load (format "compat-%d%s" vers
                     (if (bound-and-true-p compat-testing)
                         ".el" ""))
