@@ -1,11 +1,6 @@
 ;;; compat-28.el --- Compatibility Layer for Emacs 28.1  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021, 2022 Free Software Foundation, Inc.
-
-;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Compat Development <~pkal/compat-devel@lists.sr.ht>
-;; URL: https://git.sr.ht/~pkal/compat/
-;; Keywords: lisp
+;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,23 +19,11 @@
 
 ;; Find here the functionality added in Emacs 28.1, needed by older
 ;; versions.
-;;
-;; Only load this library if you need to use one of the following
-;; functions:
-;;
-;; - `unlock-buffer'
-;; - `string-width'
-;; - `directory-files'
-;; - `json-serialize'
-;; - `json-insert'
-;; - `json-parse-string'
-;; - `json-parse-buffer'
-;; - `count-windows'
 
 ;;; Code:
 
-(require 'compat-macs "compat-macs.el")
-
+(require 'compat-27)
+(eval-when-compile (load "compat-macs.el" nil t t))
 (compat-declare-version "28.1")
 
 ;;;; Defined in fns.c
@@ -56,8 +39,9 @@ The optional START-POS argument says where to start searching in
 HAYSTACK and defaults to zero (start at the beginning).
 It must be between zero and the length of HAYSTACK, inclusive.
 
-Case is always significant and text properties are ignored."
-  :note "Prior to Emacs 27 `string-match' has issues handling
+Case is always significant and text properties are ignored.
+
+NOTE: Prior to Emacs 27 `string-match' has issues handling
 multibyte regular expressions.  As the compatibility function
 for `string-search' is implemented via `string-match', these
 issues are inherited."
@@ -128,8 +112,9 @@ FACTOR determines what \"enough\" means here: If FACTOR is a
 positive number N, it means to run GC if more than 1/Nth of the
 allocations needed to trigger automatic allocation took place.
 Therefore, as N gets higher, this is more likely to perform a GC.
-Returns non-nil if GC happened, and nil otherwise."
-  :note "For releases of Emacs before version 28, this function will do nothing."
+Returns non-nil if GC happened, and nil otherwise.
+
+NOTE: For releases of Emacs before version 28, this function will do nothing."
   ;; Do nothing
   nil)
 
@@ -140,7 +125,7 @@ Returns non-nil if GC happened, and nil otherwise."
 
 Handles file system errors by calling ‘display-warning’ and
 continuing as if the error did not occur."
-  :prefix t
+  :explicit t
   (condition-case error
       (unlock-buffer)
     (file-error
@@ -156,7 +141,7 @@ continuing as if the error did not occur."
 
 Optional arguments FROM and TO specify the substring of STRING to
 consider, and are interpreted as in `substring'."
-  :prefix t
+  :explicit t
   (let* ((len (length string))
          (from (or from 0))
          (to (or to len)))
@@ -172,7 +157,7 @@ consider, and are interpreted as in `substring'."
 
 If COUNT is non-nil and a natural number, the function will
  return COUNT number of file names (if so many are present)."
-  :prefix t
+  :explicit t
   (let ((files (directory-files directory full match nosort)))
     (when (natnump count)
       (setf (nthcdr count files) nil))
@@ -187,7 +172,7 @@ If COUNT is non-nil and a natural number, the function will
 
 (compat-defun json-serialize (object &rest args)
   "Handle top-level JSON values."
-  :prefix t
+  :explicit t
   :min-version "27"
   (if (or (listp object) (vectorp object))
       (apply #'json-serialize object args)
@@ -195,7 +180,7 @@ If COUNT is non-nil and a natural number, the function will
 
 (compat-defun json-insert (object &rest args)
   "Handle top-level JSON values."
-  :prefix t
+  :explicit t
   :min-version "27"
   (if (or (listp object) (vectorp object))
       (apply #'json-insert object args)
@@ -208,7 +193,7 @@ If COUNT is non-nil and a natural number, the function will
 
 (compat-defun json-parse-string (string &rest args)
   "Handle top-level JSON values."
-  :prefix t
+  :explicit t
   :min-version "27"
   (if (string-match-p "\\`[[:space:]]*[[{]" string)
       (apply #'json-parse-string string args)
@@ -219,7 +204,7 @@ If COUNT is non-nil and a natural number, the function will
 
 (compat-defun json-parse-buffer (&rest args)
   "Handle top-level JSON values."
-  :prefix t
+  :explicit t
   :min-version "27"
   (if (looking-at-p "[[:space:]]*[[{]")
       (apply #'json-parse-buffer args)
@@ -609,8 +594,6 @@ as the new values of the bound variables in the recursive invocation."
 
 ;;;; Defined in files.el
 
-(declare-function compat--string-trim-left "compat-26" (string &optional regexp))
-(declare-function compat--directory-name-p "compat-25" (name))
 (compat-defun file-name-with-extension (filename extension)
   "Set the EXTENSION of a FILENAME.
 The extension (in a file name) is the part that begins with the last \".\".
@@ -622,13 +605,13 @@ Errors if the FILENAME or EXTENSION are empty, or if the given
 FILENAME has the format of a directory.
 
 See also `file-name-sans-extension'."
-  (let ((extn (compat--string-trim-left extension "[.]")))
+  (let ((extn (compat--internal-string-trim-left extension "[.]")))
     (cond
      ((string= filename "")
       (error "Empty filename"))
      ((string= extn "")
       (error "Malformed extension: %s" extension))
-     ((compat--directory-name-p filename)
+     ((directory-name-p filename)
       (error "Filename is a directory: %s" filename))
      (t
       (concat (file-name-sans-extension filename) "." extn)))))
@@ -759,7 +742,7 @@ is included in the return value."
 
 If ALL-FRAMES is non-nil, count the windows in all frames instead
 just the selected frame."
-  :prefix t
+  :explicit t
   (if all-frames
       (let ((sum 0))
         (dolist (frame (frame-list))
@@ -878,5 +861,5 @@ are 30 days long."
      (* (or (nth 4 time) 0) 60 60 24 30)
      (* (or (nth 5 time) 0) 60 60 24 365)))
 
-(compat--inhibit-prefixed (provide 'compat-28))
+(provide 'compat-28)
 ;;; compat-28.el ends here

@@ -1,11 +1,6 @@
 ;;; compat-27.el --- Compatibility Layer for Emacs 27.1  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021, 2022 Free Software Foundation, Inc.
-
-;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Compat Development <~pkal/compat-devel@lists.sr.ht>
-;; URL: https://git.sr.ht/~pkal/compat/
-;; Keywords: lisp
+;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,23 +19,11 @@
 
 ;; Find here the functionality added in Emacs 27.1, needed by older
 ;; versions.
-;;
-;; Only load this library if you need to use one of the following
-;; functions or macros:
-;;
-;; - `compat-recenter'
-;; - `compat-lookup-key'
-;; - `compat-setq-local'
-;; - `compat-assoc-delete-all'
-;; - `compat-file-size-human-readable'
-;; - `compat-executable-find'
-;; - `compat-regexp-opt'
-;; - `compat-dired-get-marked-files'
 
 ;;; Code:
 
-(require 'compat-macs "compat-macs.el")
-
+(require 'compat-26)
+(eval-when-compile (load "compat-macs.el" nil t t))
 (compat-declare-version "27.1")
 
 ;;;; Defined in fns.c
@@ -51,9 +34,8 @@ A proper list is neither circular nor dotted (i.e., its last cdr
 is nil)."
   :min-version "26.1"
   :max-version "26.3"
-  :realname compat--proper-list-p-length-signal
   (condition-case nil
-      (and (listp object) (length object))
+      (and (listp object) (length object)) ;; Throws a signal
     (wrong-type-argument nil)
     (circular-list nil)))
 
@@ -62,7 +44,7 @@ is nil)."
 A proper list is neither circular nor dotted (i.e., its last cdr
 is nil)."
   :max-version "25.3"
-  :realname compat--proper-list-p-tortoise-hare
+  ;; On Emacs older than 25.3 we have to use the Tortoise and Hare algorithm
   (when (listp object)
     (catch 'cycle
       (let ((hare object) (tortoise object)
@@ -114,7 +96,7 @@ Letter-case is significant, but text properties are ignored."
 
 (compat-defun recenter (&optional arg redisplay)
   "Handle optional argument REDISPLAY."
-  :prefix t
+  :explicit t
   (recenter arg)
   (when (and redisplay recenter-redisplay)
     (redisplay)))
@@ -123,7 +105,7 @@ Letter-case is significant, but text properties are ignored."
 
 (compat-defun lookup-key (keymap key &optional accept-default)
   "Allow for KEYMAP to be a list of keymaps."
-  :prefix t
+  :explicit t
   (cond
    ((keymapp keymap)
     (lookup-key keymap key accept-default))
@@ -179,7 +161,6 @@ any JSON false values."
                (:success t)
                (void-function nil)
                (json-unavailable nil)))
-  :realname compat--json-serialize
   (require 'json)
   (letrec ((fix (lambda (obj)
                   (cond
@@ -240,7 +221,7 @@ OBJECT."
                (:success t)
                (void-function nil)
                (json-unavailable nil)))
-  (insert (apply #'compat--json-serialize object args)))
+  (insert (apply #'json-serialize object args)))
 
 (compat-defun json-parse-string (string &rest args)
   "Parse the JSON STRING into a Lisp object.
@@ -330,8 +311,9 @@ represent a JSON false value.  It defaults to `:false'."
 
 (compat-defun time-equal-p (t1 t2)
   "Return non-nil if time value T1 is equal to time value T2.
-A nil value for either argument stands for the current time."
-  :note "This function is not as accurate as the actual `time-equal-p'."
+A nil value for either argument stands for the current time.
+
+NOTE: This function is not as accurate as the actual `time-equal-p'."
   (cond
    ((eq t1 t2))
    ((and (consp t1) (consp t2))
@@ -352,11 +334,7 @@ On Unix, absolute file names start with `/'.  In Emacs, an absolute
 file name can also start with an initial `~' or `~USER' component,
 where USER is a valid login name."
   ;; See definitions in filename.h
-  (let ((seperator
-         (eval-when-compile
-           (if (memq system-type '(cygwin windows-nt ms-dos))
-               "[\\/]" "/")))
-        (drive
+  (let ((drive
          (eval-when-compile
            (cond
             ((memq system-type '(windows-nt ms-dos))
@@ -386,7 +364,7 @@ where USER is a valid login name."
 
 (compat-defmacro setq-local (&rest pairs)
   "Handle multiple assignments."
-  :prefix t
+  :explicit t
   (unless (zerop (mod (length pairs) 2))
     (error "PAIRS must have an even number of variable/value members"))
   (let (body)
@@ -403,7 +381,6 @@ where USER is a valid login name."
   "Non-nil if MODE is derived from one of MODES.
 Uses the `derived-mode-parent' property of the symbol to trace backwards.
 If you just want to check `major-mode', use `derived-mode-p'."
-  :realname compat--provided-mode-derived-p
   ;; If MODE is an alias, then look up the real mode function first.
   (let ((alias (symbol-function mode)))
     (when (and alias (symbolp alias))
@@ -420,7 +397,7 @@ If you just want to check `major-mode', use `derived-mode-p'."
 (compat-defun derived-mode-p (&rest modes)
   "Non-nil if the current major mode is derived from one of MODES.
 Uses the `derived-mode-parent' property of the symbol to trace backwards."
-  (apply #'compat--provided-mode-derived-p major-mode modes))
+  (apply #'provided-mode-derived-p major-mode modes))
 
 ;;* UNTESTED
 (compat-defmacro ignore-error (condition &rest body)
@@ -495,17 +472,17 @@ return nil."
 Compare keys with TEST.  Defaults to `equal'.
 Return the modified alist.
 Elements of ALIST that are not conses are ignored."
-  :prefix t
+  :explicit t
   (unless test (setq test #'equal))
   (while (and (consp (car alist))
-	      (funcall test (caar alist) key))
+              (funcall test (caar alist) key))
     (setq alist (cdr alist)))
   (let ((tail alist) tail-cdr)
     (while (setq tail-cdr (cdr tail))
       (if (and (consp (car tail-cdr))
-	       (funcall test (caar tail-cdr) key))
-	  (setcdr tail (cdr tail-cdr))
-	(setq tail tail-cdr))))
+               (funcall test (caar tail-cdr) key))
+          (setcdr tail (cdr tail-cdr))
+        (setq tail tail-cdr))))
   alist)
 
 ;;;; Defined in simple.el
@@ -581,7 +558,7 @@ position.
 Optional fourth argument UNIT is the unit to use.  It defaults to \"B\"
 when FLAVOR is `iec' and the empty string otherwise.  We recommend \"B\"
 in all cases, since that is the standard symbol for byte."
-  :prefix t
+  :explicit t
   (let ((power (if (or (null flavor) (eq flavor 'iec))
                    1024.0
                  1000.0))
@@ -604,9 +581,6 @@ in all cases, since that is the standard symbol for byte."
               (if (string= prefixed-unit "") "" (or space ""))
               prefixed-unit))))
 
-(declare-function compat--file-name-quote "compat-26"
-                  (name &optional top))
-
 ;;*UNTESTED
 (compat-defun exec-path ()
   "Return list of directories to search programs to run in remote subprocesses.
@@ -614,7 +588,6 @@ The remote host is identified by `default-directory'.  For remote
 hosts that do not support subprocesses, this returns nil.
 If `default-directory' is a local directory, this function returns
 the value of the variable `exec-path'."
-  :realname compat--exec-path
   (cond
    ((let ((handler (find-file-name-handler default-directory 'exec-path)))
       ;; FIXME: The handler was added in 27.1, and this compatibility
@@ -641,25 +614,22 @@ the value of the variable `exec-path'."
           (nreverse path)))))
    (exec-path)))
 
-(declare-function compat--file-local-name "compat-26"
-                  (file))
-
 ;;*UNTESTED
 (compat-defun executable-find (command &optional remote)
   "Search for COMMAND in `exec-path' and return the absolute file name.
 Return nil if COMMAND is not found anywhere in `exec-path'.  If
 REMOTE is non-nil, search on the remote host indicated by
 `default-directory' instead."
-  :prefix t
+  :explicit t
   (if (and remote (file-remote-p default-directory))
       (let ((res (locate-file
                   command
                   (mapcar
                    (apply-partially
                     #'concat (file-remote-p default-directory))
-                   (compat--exec-path))
+                   (exec-path))
                   exec-suffixes 'file-executable-p)))
-        (when (stringp res) (compat--file-local-name res)))
+        (when (stringp res) (file-local-name res)))
     (executable-find command)))
 
 ;;*UNTESTED
@@ -683,7 +653,7 @@ Optional arg PARENTS, if non-nil then creates parent dirs as needed."
 
 (compat-defun regexp-opt (strings &optional paren)
   "Handle an empty list of strings."
-  :prefix t
+  :explicit t
   (if (null strings)
       (let ((re "\\`a\\`"))
         (cond ((null paren)
@@ -748,7 +718,7 @@ The return value is a string (or nil in case we can’t find it)."
     (&optional localp arg filter distinguish-one-marked error)
   "Return the marked files’ names as list of strings."
   :feature 'dired
-  :prefix t
+  :explicit t
   (let ((result (dired-get-marked-files localp arg filter distinguish-one-marked)))
     (if (and (null result) error)
         (user-error (if (stringp error) error "No files specified"))
@@ -795,15 +765,13 @@ The return value is a string (or nil in case we can’t find it)."
 
 (compat-defun prop-match-p (match)
   "Return non-nil if MATCH is a `prop-match' object."
-  :realname compat--prop-match-p-with-vector
   :max-version "26.1"
-  (and (vectorp match) (eq (aref match 0) 'prop-match)))
+  (and (vectorp match) (eq (aref match 0) 'prop-match))) ;; Vector
 
 (compat-defun prop-match-p (match)
   "Return non-nil if MATCH is a `prop-match' object."
-  :realname compat--prop-match-p-with-record
   :min-version "26.1"
-  (eq (type-of match) 'prop-match))
+  (eq (type-of match) 'prop-match)) ;; Record
 
 (compat-defun prop-match-beginning (match)
   "Retrieve the position where MATCH begins."
@@ -1005,5 +973,5 @@ and if a matching region is found, place point at the start of the region."
         (and (not (eq ended t))
              ended))))))
 
-(compat--inhibit-prefixed (provide 'compat-27))
+(provide 'compat-27)
 ;;; compat-27.el ends here

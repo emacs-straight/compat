@@ -1,12 +1,12 @@
 ;;; compat.el --- Emacs Lisp Compatibility Library -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021, 2022 Free Software Foundation, Inc.
+;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
-;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Compat Development <~pkal/compat-devel@lists.sr.ht>
-;; Version: 28.1.2.2
-;; URL: https://sr.ht/~pkal/compat
-;; Package-Requires: ((emacs "24.3") (nadvice "0.3"))
+;; Author: Philip Kaludercic <philipk@posteo.net>, Daniel Mendler <mail@daniel-mendler.de>
+;; Maintainer: Daniel Mendler <mail@daniel-mendler.de>, Compat Development <~pkal/compat-devel@lists.sr.ht>
+;; Version: 29.1.0.0-git
+;; URL: https://github.com/emacs-compat/compat
+;; Package-Requires: ((emacs "24.4") (nadvice "0.3"))
 ;; Keywords: lisp
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -40,19 +40,22 @@
 
 ;;; Code:
 
-(defvar compat--inhibit-prefixed)
-(let ((compat--inhibit-prefixed (not (bound-and-true-p compat-testing))))
-  ;; Instead of using `require', we manually check `features' and call
-  ;; `load' to avoid the issue of not using `provide' at the end of
-  ;; the file (which is disabled by `compat--inhibit-prefixed', so
-  ;; that the file can be loaded again at some later point when the
-  ;; prefixed definitions are needed).
-  (dolist (vers '(24 25 26 27 28))
-    (unless (memq (intern (format "compat-%d" vers)) features)
-      (load (format "compat-%d%s" vers
-                    (if (bound-and-true-p compat-testing)
-                        ".el" ""))
-            nil t))))
+(require 'compat-29)
+
+(defmacro compat-function (fun)
+  "Return compatibility function symbol for FUN.
+
+If the Emacs version provides a sufficiently recent version of
+FUN, the symbol FUN is returned itself."
+  (let ((compat (intern (format "compat--%s" fun))))
+    `#',(if (fboundp compat) compat fun)))
+
+(defmacro compat-call (fun &rest args)
+  "Call compatibility function FUN with ARGS.
+
+See `compat-function' for the compatibility function resolution."
+  (let ((compat (intern (format "compat--%s" fun))))
+    `(,(if (fboundp compat) compat fun) ,@args)))
 
 (provide 'compat)
 ;;; compat.el ends here

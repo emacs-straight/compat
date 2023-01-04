@@ -1,11 +1,6 @@
 ;;; compat-26.el --- Compatibility Layer for Emacs 26.1  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021, 2022 Free Software Foundation, Inc.
-
-;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Compat Development <~pkal/compat-devel@lists.sr.ht>
-;; URL: https://git.sr.ht/~pkal/compat/
-;; Keywords: lisp
+;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,21 +19,11 @@
 
 ;; Find here the functionality added in Emacs 26.1, needed by older
 ;; versions.
-;;
-;; Only load this library if you need to use one of the following
-;; functions:
-;;
-;; - `compat-sort'
-;; - `line-number-at-pos'
-;; - `compat-alist-get'
-;; - `string-trim-left'
-;; - `string-trim-right'
-;; - `string-trim'
 
 ;;; Code:
 
-(require 'compat-macs "compat-macs.el")
-
+(require 'compat-25)
+(eval-when-compile (load "compat-macs.el" nil t t))
 (compat-declare-version "26.1")
 
 ;;;; Defined in eval.c
@@ -49,14 +34,13 @@ FUNC must be a function of some kind.
 The returned value is a cons cell (MIN . MAX).  MIN is the minimum number
 of args.  MAX is the maximum number, or the symbol `many', for a
 function with `&rest' args, or `unevalled' for a special form."
-  :realname compat--func-arity
   (cond
    ((or (null func) (and (symbolp func) (not (fboundp func))))
     (signal 'void-function func))
    ((and (symbolp func) (not (null func)))
-    (compat--func-arity (symbol-function func)))
+    (func-arity (symbol-function func)))
    ((eq (car-safe func) 'macro)
-    (compat--func-arity (cdr func)))
+    (func-arity (cdr func)))
    ((subrp func)
     (subr-arity func))
    ((memq (car-safe func) '(closure lambda))
@@ -111,7 +95,7 @@ function with `&rest' args, or `unevalled' for a special form."
       (cons mandatory (if arglist 'many nonrest))))
    ((autoloadp func)
     (autoload-do-load func)
-    (compat--func-arity func))
+    (func-arity func))
    ((signal 'invalid-function func))))
 
 ;;;; Defined in fns.c
@@ -122,7 +106,8 @@ Equality is defined by the function TESTFN, defaulting to
 `equal'.  TESTFN is called with 2 arguments: a car of an alist
 element and KEY.  With no optional argument, the function behaves
 just like `assoc'."
-  :prefix t
+  :explicit t
+  :realname compat--internal-assoc
   (if testfn
       (catch 'found
         (dolist (ent alist)
@@ -144,7 +129,7 @@ If the buffer is narrowed, the return value by default counts the lines
 from the beginning of the accessible portion of the buffer.  But if the
 second optional argument ABSOLUTE is non-nil, the value counts the lines
 from the absolute start of the buffer, disregarding the narrowing."
-  :prefix t
+  :explicit t
   (if absolute
       (save-restriction
         (widen)
@@ -153,23 +138,20 @@ from the absolute start of the buffer, disregarding the narrowing."
 
 ;;;; Defined in subr.el
 
-(declare-function compat--alist-get-full-elisp "compat-25"
-                  (key alist &optional default remove testfn))
+(declare-function alist-get nil (key alist &optional default remove))
 (compat-defun alist-get (key alist &optional default remove testfn)
   "Handle TESTFN manually."
-  :realname compat--alist-get-handle-testfn
-  :prefix t
+  :explicit t
   (if testfn
       (compat--alist-get-full-elisp key alist default remove testfn)
     (alist-get key alist default remove)))
 
 (gv-define-expander compat-alist-get
   (lambda (do key alist &optional default remove testfn)
+    (warn "The compat-alist-get gv has been deprecated")
     (macroexp-let2 macroexp-copyable-p k key
       (gv-letplace (getter setter) alist
-        (macroexp-let2 nil p `(if (and ,testfn (not (eq ,testfn 'eq)))
-                                  (compat-assoc ,k ,getter ,testfn)
-                                (assq ,k ,getter))
+        (macroexp-let2 nil p `(compat--internal-assoc ,k ,getter ,testfn)
           (funcall do (if (null default) `(cdr ,p)
                         `(if ,p (cdr ,p) ,default))
                    (lambda (v)
@@ -198,8 +180,8 @@ from the absolute start of the buffer, disregarding the narrowing."
   "Trim STRING of leading string matching REGEXP.
 
 REGEXP defaults to \"[ \\t\\n\\r]+\"."
-  :realname compat--string-trim-left
-  :prefix t
+  :realname compat--internal-string-trim-left
+  :explicit t
   (if (string-match (concat "\\`\\(?:" (or regexp "[ \t\n\r]+") "\\)") string)
       (substring string (match-end 0))
     string))
@@ -208,8 +190,8 @@ REGEXP defaults to \"[ \\t\\n\\r]+\"."
   "Trim STRING of trailing string matching REGEXP.
 
 REGEXP defaults to  \"[ \\t\\n\\r]+\"."
-  :realname compat--string-trim-right
-  :prefix t
+  :realname compat--internal-string-trim-right
+  :explicit t
   (let ((i (string-match-p
             (concat "\\(?:" (or regexp "[ \t\n\r]+") "\\)\\'")
             string)))
@@ -219,12 +201,12 @@ REGEXP defaults to  \"[ \\t\\n\\r]+\"."
   "Trim STRING of leading with and trailing matching TRIM-LEFT and TRIM-RIGHT.
 
 TRIM-LEFT and TRIM-RIGHT default to \"[ \\t\\n\\r]+\"."
-  :prefix t
+  :explicit t
   ;; `string-trim-left' and `string-trim-right' were moved from subr-x
   ;; to subr in Emacs 27, so to avoid loading subr-x we use the
   ;; compatibility function here:
-  (compat--string-trim-left
-   (compat--string-trim-right
+  (compat--internal-string-trim-left
+   (compat--internal-string-trim-right
     string
     trim-right)
    trim-left))
@@ -361,6 +343,61 @@ PREFIX is a string, and defaults to \"g\"."
                      (1+ gensym-counter)))))
     (make-symbol (format "%s%d" (or prefix "g") num))))
 
+(compat-defmacro if-let* (varlist then &rest else)
+  "Bind variables according to VARLIST and evaluate THEN or ELSE.
+This is like `if-let' but doesn't handle a VARLIST of the form
+\(SYMBOL SOMETHING) specially."
+  (declare (indent 2)
+           (debug ((&rest [&or symbolp (symbolp form) (form)])
+                   body)))
+  (let ((empty (make-symbol "s"))
+        (last t) list)
+    (dolist (var varlist)
+      (push `(,(if (cdr var) (car var) empty)
+              (and ,last ,(if (cdr var) (cadr var) (car var))))
+            list)
+      (when (or (cdr var) (consp (car var)))
+        (setq last (caar list))))
+    `(let* ,(nreverse list)
+       (if ,(caar list) ,then ,@else))))
+
+(compat-defmacro when-let* (varlist &rest body)
+  "Bind variables according to VARLIST and conditionally evaluate BODY.
+This is like `when-let' but doesn't handle a VARLIST of the form
+\(SYMBOL SOMETHING) specially."
+  (declare (indent 1)
+           (debug ((&rest [&or symbolp (symbolp form) (form)])
+                   body)))
+  (let ((empty (make-symbol "s"))
+        (last t) list)
+    (dolist (var varlist)
+      (push `(,(if (cdr var) (car var) empty)
+              (and ,last ,(if (cdr var) (cadr var) (car var))))
+            list)
+      (when (or (cdr var) (consp (car var)))
+        (setq last (caar list))))
+    `(let* ,(nreverse list)
+       (when ,(caar list) ,@body))))
+
+(compat-defmacro and-let* (varlist &rest body)
+  "Bind variables according to VARLIST and conditionally evaluate BODY.
+Like `when-let*', except if BODY is empty and all the bindings
+are non-nil, then the result is non-nil."
+  :feature 'subr-x
+  (declare (indent 1)
+           (debug ((&rest [&or symbolp (symbolp form) (form)])
+                   body)))
+  (let ((empty (make-symbol "s"))
+        (last t) list)
+    (dolist (var varlist)
+      (push `(,(if (cdr var) (car var) empty)
+              (and ,last ,(if (cdr var) (cadr var) (car var))))
+            list)
+      (when (or (cdr var) (consp (car var)))
+        (setq last (caar list))))
+    `(let* ,(nreverse list)
+       (if ,(caar list) ,(macroexp-progn (or body '(t)))))))
+
 ;;;; Defined in files.el
 
 (declare-function temporary-file-directory nil)
@@ -396,25 +433,25 @@ and the method of accessing the host, leaving only the part that
 identifies FILE locally on the remote system.
 The returned file name can be used directly as argument of
 `process-file', `start-file-process', or `shell-command'."
-  :realname compat--file-local-name
   (or (file-remote-p file 'localname) file))
 
 (compat-defun file-name-quoted-p (name &optional top)
   "Whether NAME is quoted with prefix \"/:\".
 If NAME is a remote file name and TOP is nil, check the local part of NAME."
-  :realname compat--file-name-quoted-p
+  :explicit t
   (let ((file-name-handler-alist (unless top file-name-handler-alist)))
-    (string-prefix-p "/:" (compat--file-local-name name))))
+    (string-prefix-p "/:" (file-local-name name))))
 
 (compat-defun file-name-quote (name &optional top)
   "Add the quotation prefix \"/:\" to file NAME.
 If NAME is a remote file name and TOP is nil, the local part of
 NAME is quoted.  If NAME is already a quoted file name, NAME is
 returned unchanged."
+  :explicit t
   (let ((file-name-handler-alist (unless top file-name-handler-alist)))
-    (if (compat--file-name-quoted-p name top)
+    (if (string-prefix-p "/:" (file-local-name name))
         name
-      (concat (file-remote-p name) "/:" (compat--file-local-name name)))))
+      (concat (file-remote-p name) "/:" (file-local-name name)))))
 
 ;;* UNTESTED
 (compat-defun temporary-file-directory ()
@@ -534,62 +571,6 @@ inode-number and device-number."
           (error "Wrong attribute name '%S'" attr))))
     (nreverse result)))
 
-;;;; Defined in subr-x.el
-
-(compat-defmacro if-let* (varlist then &rest else)
-  "Bind variables according to VARLIST and evaluate THEN or ELSE.
-This is like `if-let' but doesn't handle a VARLIST of the form
-\(SYMBOL SOMETHING) specially."
-  :realname compat--if-let*
-  :feature 'subr-x
-  (declare (indent 2)
-           (debug ((&rest [&or symbolp (symbolp form) (form)])
-                   body)))
-  (let ((empty (make-symbol "s"))
-        (last t) list)
-    (dolist (var varlist)
-      (push `(,(if (cdr var) (car var) empty)
-              (and ,last ,(or (cadr var) (car var))))
-            list)
-      (when (or (cdr var) (consp (car var)))
-        (setq last (caar list))))
-    `(let* ,(nreverse list)
-       (if ,(caar list) ,then ,@else))))
-
-(compat-defmacro when-let* (varlist &rest body)
-  "Bind variables according to VARLIST and conditionally evaluate BODY.
-This is like `when-let' but doesn't handle a VARLIST of the form
-\(SYMBOL SOMETHING) specially."
-  ;; :feature 'subr-x
-  (declare (indent 1) (debug if-let*))
-  (let ((empty (make-symbol "s"))
-        (last t) list)
-    (dolist (var varlist)
-      (push `(,(if (cdr var) (car var) empty)
-              (and ,last ,(or (cadr var) (car var))))
-            list)
-      (when (or (cdr var) (consp (car var)))
-        (setq last (caar list))))
-    `(let* ,(nreverse list)
-       (when ,(caar list) ,@body))))
-
-(compat-defmacro and-let* (varlist &rest body)
-  "Bind variables according to VARLIST and conditionally evaluate BODY.
-Like `when-let*', except if BODY is empty and all the bindings
-are non-nil, then the result is non-nil."
-  :feature 'subr-x
-  (declare (indent 1) (debug if-let*))
-  (let ((empty (make-symbol "s"))
-        (last t) list)
-    (dolist (var varlist)
-      (push `(,(if (cdr var) (car var) empty)
-              (and ,last ,(or (cadr var) (car var))))
-            list)
-      (when (or (cdr var) (consp (car var)))
-        (setq last (caar list))))
-    `(let* ,(nreverse list)
-       (if ,(caar list) ,(macroexp-progn (or body '(t)))))))
-
 ;;;; Defined in image.el
 
 ;;* UNTESTED
@@ -642,8 +623,9 @@ NAME is a short name for the entry to be displayed while prompting
 \(if there's no room, it might be shortened).
 
 If LONG-FORM, do a `completing-read' over the NAME elements in
-CHOICES instead."
-  :note "This is a partial implementation of `read-multiple-choice', that
+CHOICES instead.
+
+NOTE: This is a partial implementation of `read-multiple-choice', that
 among other things doesn't offer any help and ignores the
 optional DESCRIPTION field."
   (if long-form
@@ -671,5 +653,5 @@ optional DESCRIPTION field."
         (sit-for 1))
       choice)))
 
-(compat--inhibit-prefixed (provide 'compat-26))
+(provide 'compat-26)
 ;;; compat-26.el ends here

@@ -1,11 +1,6 @@
 ;;; compat-24.el --- Compatibility Layer for Emacs 24.4  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021, 2022 Free Software Foundation, Inc.
-
-;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Compat Development <~pkal/compat-devel@lists.sr.ht>
-;; URL: https://git.sr.ht/~pkal/compat/
-;; Keywords: lisp
+;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,28 +19,17 @@
 
 ;; Find here the functionality added in Emacs 24.4, needed by older
 ;; versions.
-;;
-;; Only load this library if you need to use one of the following
-;; functions:
-;;
-;; - `compat-='
-;; - `compat-<'
-;; - `compat->'
-;; - `compat-<='
-;; - `compat->='
-;; - `split-string'.
 
 ;;; Code:
 
-(require 'compat-macs "compat-macs.el")
-
+(eval-when-compile (load "compat-macs.el" nil t t))
 (compat-declare-version "24.4")
 
 ;;;; Defined in data.c
 
 (compat-defun = (number-or-marker &rest numbers-or-markers)
   "Handle multiple arguments."
-  :prefix t
+  :explicit t
   (catch 'fail
     (while numbers-or-markers
       (unless (= number-or-marker (car numbers-or-markers))
@@ -55,7 +39,7 @@
 
 (compat-defun < (number-or-marker &rest numbers-or-markers)
   "Handle multiple arguments."
-  :prefix t
+  :explicit t
   (catch 'fail
     (while numbers-or-markers
       (unless (< number-or-marker (car numbers-or-markers))
@@ -65,7 +49,7 @@
 
 (compat-defun > (number-or-marker &rest numbers-or-markers)
   "Handle multiple arguments."
-  :prefix t
+  :explicit t
   (catch 'fail
     (while numbers-or-markers
       (unless (> number-or-marker (car numbers-or-markers))
@@ -75,7 +59,7 @@
 
 (compat-defun <= (number-or-marker &rest numbers-or-markers)
   "Handle multiple arguments."
-  :prefix t
+  :explicit t
   (catch 'fail
     (while numbers-or-markers
       (unless (<= number-or-marker (car numbers-or-markers))
@@ -85,7 +69,7 @@
 
 (compat-defun >= (number-or-marker &rest numbers-or-markers)
   "Handle multiple arguments."
-  :prefix t
+  :explicit t
   (catch 'fail
     (while numbers-or-markers
       (unless (>= number-or-marker (pop numbers-or-markers))
@@ -283,7 +267,7 @@ attention to case differences."
   "Extend `split-string' by a TRIM argument.
 The remaining arguments STRING, SEPARATORS and OMIT-NULLS are
 handled just as with `split-string'."
-  :prefix t
+  :explicit t
   (let* ((token (split-string string separators omit-nulls))
          (trimmed (if trim
                       (mapcar
@@ -383,23 +367,6 @@ When IGNORE-CASE is non-nil, FUN is expected to be case-insensitive."
 
 ;;;; Defined in subr-x.el
 
-;;* UNTESTED
-(compat-advise require (feature &rest args)
-  "Allow for Emacs 24.3 to require the inexistent FEATURE subr-x."
-  :version "24.4"
-  ;; As the compatibility advise around `require` is more a hack than
-  ;; of of actual value, the highlighting is suppressed.
-  :no-highlight t
-  (if (eq feature 'subr-x)
-      (progn
-        (unless (memq 'subr-x features)
-          (push 'subr-x features)
-          (dolist (a-l-element after-load-alist)
-            (when (eq (car a-l-element) 'subr-x)
-              (mapc #'eval (cdr a-l-element)))))
-        'subr-x)
-    (apply oldfun feature args)))
-
 (compat-defun hash-table-keys (hash-table)
   "Return a list of keys in HASH-TABLE."
   (let (values)
@@ -478,7 +445,7 @@ function for defining FACE and recalculating its attributes."
   (unless spec-type
     (setq spec-type 'face-override-spec))
   (if (memq spec-type '(face-defface-spec face-override-spec
-			customized-face saved-face))
+                        customized-face saved-face))
       (put face spec-type spec))
   (if (memq spec-type '(reset saved-face))
       (put face 'customized-face nil))
@@ -495,5 +462,5 @@ function for defining FACE and recalculating its attributes."
   (dolist (frame (frame-list))
     (face-spec-recalc face frame)))
 
-(compat--inhibit-prefixed (provide 'compat-24))
+(provide 'compat-24)
 ;;; compat-24.el ends here
