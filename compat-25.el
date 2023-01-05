@@ -28,7 +28,7 @@
 
 ;;;; Defined in alloc.c
 
-(compat-defun bool-vector (&rest objects)
+(compat-defun bool-vector (&rest objects) ;; <OK>
   "Return a new bool-vector with specified arguments as elements.
 Allows any number of arguments, including zero.
 usage: (bool-vector &rest OBJECTS)"
@@ -43,7 +43,7 @@ usage: (bool-vector &rest OBJECTS)"
 
 ;;;; Defined in fns.c
 
-(compat-defun sort (seq predicate)
+(compat-defun sort (seq predicate) ;; <OK>
   "Extend `sort' to sort SEQ as a vector."
   :explicit t
   (cond
@@ -58,7 +58,7 @@ usage: (bool-vector &rest OBJECTS)"
 
 ;;;; Defined in editfns.c
 
-(compat-defun format-message (string &rest objects)
+(compat-defun format-message (string &rest objects) ;; <OK>
   "Format a string out of a format-string and arguments.
 The first argument is a format control string.
 The other arguments are substituted into it to make the result, a string.
@@ -66,13 +66,9 @@ The other arguments are substituted into it to make the result, a string.
 This implementation is equivalent to `format'."
   (apply #'format string objects))
 
-;;;; Defined in minibuf.c
-
-;; TODO advise read-buffer to handle 4th argument
-
 ;;;; Defined in fileio.c
 
-(compat-defun directory-name-p (name)
+(compat-defun directory-name-p (name) ;; <OK>
   "Return non-nil if NAME ends with a directory separator character."
   (eq (eval-when-compile
         (if (memq system-type '(cygwin windows-nt ms-dos))
@@ -81,14 +77,13 @@ This implementation is equivalent to `format'."
 
 ;;;; Defined in subr.el
 
-(compat-defun string-greaterp (string1 string2)
+(compat-defun string-greaterp (string1 string2) ;; <OK>
   "Return non-nil if STRING1 is greater than STRING2 in lexicographic order.
 Case is significant.
 Symbols are also allowed; their print names are used instead."
   (string-lessp string2 string1))
 
-;;* UNTESTED
-(compat-defmacro with-file-modes (modes &rest body)
+(compat-defmacro with-file-modes (modes &rest body) ;; <UNTESTED>
   "Execute BODY with default file permissions temporarily set to MODES.
 MODES is as for `set-default-file-modes'."
   (declare (indent 1) (debug t))
@@ -100,7 +95,7 @@ MODES is as for `set-default-file-modes'."
              ,@body)
          (set-default-file-modes ,umask)))))
 
-(compat-defun alist-get (key alist &optional default remove testfn)
+(compat-defun alist-get (key alist &optional default remove testfn) ;; <OK>
   "Find the first element of ALIST whose `car' equals KEY and return its `cdr'.
 If KEY is not found in ALIST, return DEFAULT.
 Equality with KEY is tested by TESTFN, defaulting to `eq'."
@@ -119,7 +114,7 @@ Equality with KEY is tested by TESTFN, defaulting to `eq'."
         default)))
     (if entry (cdr entry) default)))
 
-(compat-defmacro if-let (spec then &rest else)
+(compat-defmacro if-let (spec then &rest else) ;; <OK>
   "Bind variables according to SPEC and evaluate THEN or ELSE.
 Evaluate each binding in turn, as in `let*', stopping if a
 binding value is nil.  If all are non-nil return the value of
@@ -154,7 +149,7 @@ with an old syntax that accepted only one binding."
     `(let* ,(nreverse list)
        (if ,(caar list) ,then ,@else))))
 
-(compat-defmacro when-let (spec &rest body)
+(compat-defmacro when-let (spec &rest body) ;; <OK>
   "Bind variables according to SPEC and conditionally evaluate BODY.
 Evaluate each binding in turn, stopping if a binding value is nil.
 If all are non-nil, return the value of the last form in BODY.
@@ -181,7 +176,7 @@ The variable list SPEC is the same as in `if-let'."
 
 ;;;; Defined in subr-x.el
 
-(compat-defmacro thread-first (&rest forms)
+(compat-defmacro thread-first (&rest forms) ;; <OK>
   "Thread FORMS elements as the first argument of their successor.
 Example:
     (thread-first
@@ -194,7 +189,6 @@ Is equivalent to:
     (+ (- (/ (+ 5 20) 25)) 40)
 Note how the single `-' got converted into a list before
 threading."
-  :feature 'subr-x
   (declare (indent 1)
            (debug (form &rest [&or symbolp (sexp &rest form)])))
   (let ((body (car forms)))
@@ -206,7 +200,7 @@ threading."
                          (cdr form))))
     body))
 
-(compat-defmacro thread-last (&rest forms)
+(compat-defmacro thread-last (&rest forms) ;; <OK>
   "Thread FORMS elements as the last argument of their successor.
 Example:
     (thread-last
@@ -219,7 +213,6 @@ Is equivalent to:
     (+ 40 (- (/ 25 (+ 20 5))))
 Note how the single `-' got converted into a list before
 threading."
-  :feature 'subr-x
   (declare (indent 1) (debug thread-first))
   (let ((body (car forms)))
     (dolist (form (cdr forms))
@@ -231,9 +224,9 @@ threading."
 ;;;; Defined in macroexp.el
 
 (declare-function macrop nil (object))
-(compat-defun macroexpand-1 (form &optional environment)
+(compat-defun macroexpand-1 (form &optional environment) ;; <OK>
   "Perform (at most) one step of macro expansion."
-  :feature 'macroexp
+  :feature macroexp
   (cond
    ((consp form)
     (let* ((head (car form))
@@ -258,8 +251,7 @@ threading."
 
 ;;;; Defined in byte-run.el
 
-;;* UNTESTED
-(compat-defun function-put (func prop value)
+(compat-defun function-put (func prop value) ;; <OK>
   "Set FUNCTION's property PROP to VALUE.
 The namespace for PROP is shared with symbols.
 So far, FUNCTION can only be a symbol, not a lambda expression."
@@ -268,8 +260,7 @@ So far, FUNCTION can only be a symbol, not a lambda expression."
 
 ;;;; Defined in files.el
 
-;;* UNTESTED
-(compat-defun directory-files-recursively
+(compat-defun directory-files-recursively ;; <UNTESTED>
     (dir regexp &optional include-directories predicate follow-symlinks)
   "Return list of all files under directory DIR whose names match REGEXP.
 This function works recursively.  Files are returned in \"depth

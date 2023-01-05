@@ -26,81 +26,9 @@
 (eval-when-compile (load "compat-macs.el" nil t t))
 (compat-declare-version "26.1")
 
-;;;; Defined in eval.c
-
-(compat-defun func-arity (func)
-  "Return minimum and maximum number of args allowed for FUNC.
-FUNC must be a function of some kind.
-The returned value is a cons cell (MIN . MAX).  MIN is the minimum number
-of args.  MAX is the maximum number, or the symbol `many', for a
-function with `&rest' args, or `unevalled' for a special form."
-  (cond
-   ((or (null func) (and (symbolp func) (not (fboundp func))))
-    (signal 'void-function func))
-   ((and (symbolp func) (not (null func)))
-    (func-arity (symbol-function func)))
-   ((eq (car-safe func) 'macro)
-    (func-arity (cdr func)))
-   ((subrp func)
-    (subr-arity func))
-   ((memq (car-safe func) '(closure lambda))
-    ;; See lambda_arity from eval.c
-    (when (eq (car func) 'closure)
-      (setq func (cdr func)))
-    (let ((syms-left (if (consp func)
-                         (car func)
-                       (signal 'invalid-function func)))
-          (min-args 0) (max-args 0) optional)
-      (catch 'many
-        (dolist (next syms-left)
-          (cond
-           ((not (symbolp next))
-            (signal 'invalid-function func))
-           ((eq next '&rest)
-            (throw 'many (cons min-args 'many)))
-           ((eq next '&optional)
-            (setq optional t))
-           (t (unless optional
-                (setq min-args (1+ min-args)))
-              (setq max-args (1+ max-args)))))
-        (cons min-args max-args))))
-   ((and (byte-code-function-p func) (numberp (aref func 0)))
-    ;; See get_byte_code_arity from bytecode.c
-    (let ((at (aref func 0)))
-      (cons (logand at 127)
-            (if (= (logand at 128) 0)
-                (ash at -8)
-              'many))))
-   ((and (byte-code-function-p func) (numberp (aref func 0)))
-    ;; See get_byte_code_arity from bytecode.c
-    (let ((at (aref func 0)))
-      (cons (logand at 127)
-            (if (= (logand at 128) 0)
-                (ash at -8)
-              'many))))
-   ((and (byte-code-function-p func) (listp (aref func 0)))
-    ;; Based on `byte-compile-make-args-desc', this is required for
-    ;; old versions of Emacs that don't use a integer for the argument
-    ;; list description, per e2abe5a13dffb08d6371b6a611bc39c3a9ac2bc6.
-    (let ((arglist (aref func 0)) (mandatory 0) nonrest)
-      (while (and arglist (not (memq (car arglist) '(&optional &rest))))
-        (setq mandatory (1+ mandatory))
-        (setq arglist (cdr arglist)))
-      (setq nonrest mandatory)
-      (when (eq (car arglist) '&optional)
-        (setq arglist (cdr arglist))
-        (while (and arglist (not (eq (car arglist) '&rest)))
-          (setq nonrest (1+ nonrest))
-          (setq arglist (cdr arglist))))
-      (cons mandatory (if arglist 'many nonrest))))
-   ((autoloadp func)
-    (autoload-do-load func)
-    (func-arity func))
-   ((signal 'invalid-function func))))
-
 ;;;; Defined in fns.c
 
-(compat-defun assoc (key alist &optional testfn)
+(compat-defun assoc (key alist &optional testfn) ;; <OK>
   "Handle the optional argument TESTFN.
 Equality is defined by the function TESTFN, defaulting to
 `equal'.  TESTFN is called with 2 arguments: a car of an alist
@@ -115,14 +43,13 @@ just like `assoc'."
             (throw 'found ent))))
     (assoc key alist)))
 
-(compat-defun mapcan (func sequence)
+(compat-defun mapcan (func sequence) ;; <OK>
   "Apply FUNC to each element of SEQUENCE.
 Concatenate the results by altering them (using `nconc').
 SEQUENCE may be a list, a vector, a boolean vector, or a string."
   (apply #'nconc (mapcar func sequence)))
 
-;;* UNTESTED
-(compat-defun line-number-at-pos (&optional position absolute)
+(compat-defun line-number-at-pos (&optional position absolute) ;; <UNTESTED>
   "Handle optional argument ABSOLUTE:
 
 If the buffer is narrowed, the return value by default counts the lines
@@ -139,16 +66,15 @@ from the absolute start of the buffer, disregarding the narrowing."
 ;;;; Defined in subr.el
 
 (declare-function alist-get nil (key alist &optional default remove))
-(compat-defun alist-get (key alist &optional default remove testfn)
+(compat-defun alist-get (key alist &optional default remove testfn) ;; <OK>
   "Handle TESTFN manually."
   :explicit t
   (if testfn
       (compat--alist-get-full-elisp key alist default remove testfn)
     (alist-get key alist default remove)))
 
-(gv-define-expander compat-alist-get
+(gv-define-expander compat--alist-get
   (lambda (do key alist &optional default remove testfn)
-    (warn "The compat-alist-get gv has been deprecated")
     (macroexp-let2 macroexp-copyable-p k key
       (gv-letplace (getter setter) alist
         (macroexp-let2 nil p `(compat--internal-assoc ,k ,getter ,testfn)
@@ -176,7 +102,7 @@ from the absolute start of the buffer, disregarding the narrowing."
                                                `(delq ,p ,getter))))))
                             ,v))))))))))
 
-(compat-defun string-trim-left (string &optional regexp)
+(compat-defun string-trim-left (string &optional regexp) ;; <OK>
   "Trim STRING of leading string matching REGEXP.
 
 REGEXP defaults to \"[ \\t\\n\\r]+\"."
@@ -186,7 +112,7 @@ REGEXP defaults to \"[ \\t\\n\\r]+\"."
       (substring string (match-end 0))
     string))
 
-(compat-defun string-trim-right (string &optional regexp)
+(compat-defun string-trim-right (string &optional regexp) ;; <OK>
   "Trim STRING of trailing string matching REGEXP.
 
 REGEXP defaults to  \"[ \\t\\n\\r]+\"."
@@ -197,7 +123,7 @@ REGEXP defaults to  \"[ \\t\\n\\r]+\"."
             string)))
     (if i (substring string 0 i) string)))
 
-(compat-defun string-trim (string &optional trim-left trim-right)
+(compat-defun string-trim (string &optional trim-left trim-right) ;; <OK>
   "Trim STRING of leading with and trailing matching TRIM-LEFT and TRIM-RIGHT.
 
 TRIM-LEFT and TRIM-RIGHT default to \"[ \\t\\n\\r]+\"."
@@ -211,122 +137,122 @@ TRIM-LEFT and TRIM-RIGHT default to \"[ \\t\\n\\r]+\"."
     trim-right)
    trim-left))
 
-(compat-defun caaar (x)
+(compat-defun caaar (x) ;; <OK>
   "Return the `car' of the `car' of the `car' of X."
   (declare (pure t))
   (car (car (car x))))
 
-(compat-defun caadr (x)
+(compat-defun caadr (x) ;; <OK>
   "Return the `car' of the `car' of the `cdr' of X."
   (declare (pure t))
   (car (car (cdr x))))
 
-(compat-defun cadar (x)
+(compat-defun cadar (x) ;; <OK>
   "Return the `car' of the `cdr' of the `car' of X."
   (declare (pure t))
   (car (cdr (car x))))
 
-(compat-defun caddr (x)
+(compat-defun caddr (x) ;; <OK>
   "Return the `car' of the `cdr' of the `cdr' of X."
   (declare (pure t))
   (car (cdr (cdr x))))
 
-(compat-defun cdaar (x)
+(compat-defun cdaar (x) ;; <OK>
   "Return the `cdr' of the `car' of the `car' of X."
   (declare (pure t))
   (cdr (car (car x))))
 
-(compat-defun cdadr (x)
+(compat-defun cdadr (x) ;; <OK>
   "Return the `cdr' of the `car' of the `cdr' of X."
   (declare (pure t))
   (cdr (car (cdr x))))
 
-(compat-defun cddar (x)
+(compat-defun cddar (x) ;; <OK>
   "Return the `cdr' of the `cdr' of the `car' of X."
   (declare (pure t))
   (cdr (cdr (car x))))
 
-(compat-defun cdddr (x)
+(compat-defun cdddr (x) ;; <OK>
   "Return the `cdr' of the `cdr' of the `cdr' of X."
   (declare (pure t))
   (cdr (cdr (cdr x))))
 
-(compat-defun caaaar (x)
+(compat-defun caaaar (x) ;; <OK>
   "Return the `car' of the `car' of the `car' of the `car' of X."
   (declare (pure t))
   (car (car (car (car x)))))
 
-(compat-defun caaadr (x)
+(compat-defun caaadr (x) ;; <OK>
   "Return the `car' of the `car' of the `car' of the `cdr' of X."
   (declare (pure t))
   (car (car (car (cdr x)))))
 
-(compat-defun caadar (x)
+(compat-defun caadar (x) ;; <OK>
   "Return the `car' of the `car' of the `cdr' of the `car' of X."
   (declare (pure t))
   (car (car (cdr (car x)))))
 
-(compat-defun caaddr (x)
+(compat-defun caaddr (x) ;; <OK>
   "Return the `car' of the `car' of the `cdr' of the `cdr' of X."
   (declare (pure t))
   (car (car (cdr (cdr x)))))
 
-(compat-defun cadaar (x)
+(compat-defun cadaar (x) ;; <OK>
   "Return the `car' of the `cdr' of the `car' of the `car' of X."
   (declare (pure t))
   (car (cdr (car (car x)))))
 
-(compat-defun cadadr (x)
+(compat-defun cadadr (x) ;; <OK>
   "Return the `car' of the `cdr' of the `car' of the `cdr' of X."
   (declare (pure t))
   (car (cdr (car (cdr x)))))
 
-(compat-defun caddar (x)
+(compat-defun caddar (x) ;; <OK>
   "Return the `car' of the `cdr' of the `cdr' of the `car' of X."
   (declare (pure t))
   (car (cdr (cdr (car x)))))
 
-(compat-defun cadddr (x)
+(compat-defun cadddr (x) ;; <OK>
   "Return the `car' of the `cdr' of the `cdr' of the `cdr' of X."
   (declare (pure t))
   (car (cdr (cdr (cdr x)))))
 
-(compat-defun cdaaar (x)
+(compat-defun cdaaar (x) ;; <OK>
   "Return the `cdr' of the `car' of the `car' of the `car' of X."
   (declare (pure t))
   (cdr (car (car (car x)))))
 
-(compat-defun cdaadr (x)
+(compat-defun cdaadr (x) ;; <OK>
   "Return the `cdr' of the `car' of the `car' of the `cdr' of X."
   (declare (pure t))
   (cdr (car (car (cdr x)))))
 
-(compat-defun cdadar (x)
+(compat-defun cdadar (x) ;; <OK>
   "Return the `cdr' of the `car' of the `cdr' of the `car' of X."
   (declare (pure t))
   (cdr (car (cdr (car x)))))
 
-(compat-defun cdaddr (x)
+(compat-defun cdaddr (x) ;; <OK>
   "Return the `cdr' of the `car' of the `cdr' of the `cdr' of X."
   (declare (pure t))
   (cdr (car (cdr (cdr x)))))
 
-(compat-defun cddaar (x)
+(compat-defun cddaar (x) ;; <OK>
   "Return the `cdr' of the `cdr' of the `car' of the `car' of X."
   (declare (pure t))
   (cdr (cdr (car (car x)))))
 
-(compat-defun cddadr (x)
+(compat-defun cddadr (x) ;; <OK>
   "Return the `cdr' of the `cdr' of the `car' of the `cdr' of X."
   (declare (pure t))
   (cdr (cdr (car (cdr x)))))
 
-(compat-defun cdddar (x)
+(compat-defun cdddar (x) ;; <OK>
   "Return the `cdr' of the `cdr' of the `cdr' of the `car' of X."
   (declare (pure t))
   (cdr (cdr (cdr (car x)))))
 
-(compat-defun cddddr (x)
+(compat-defun cddddr (x) ;; <OK>
   "Return the `cdr' of the `cdr' of the `cdr' of the `cdr' of X."
   (declare (pure t))
   (cdr (cdr (cdr (cdr x)))))
@@ -334,7 +260,7 @@ TRIM-LEFT and TRIM-RIGHT default to \"[ \\t\\n\\r]+\"."
 (compat-defvar gensym-counter 0
   "Number used to construct the name of the next symbol created by `gensym'.")
 
-(compat-defun gensym (&optional prefix)
+(compat-defun gensym (&optional prefix) ;; <OK>
   "Return a new uninterned symbol.
 The name is made by appending `gensym-counter' to PREFIX.
 PREFIX is a string, and defaults to \"g\"."
@@ -343,7 +269,7 @@ PREFIX is a string, and defaults to \"g\"."
                      (1+ gensym-counter)))))
     (make-symbol (format "%s%d" (or prefix "g") num))))
 
-(compat-defmacro if-let* (varlist then &rest else)
+(compat-defmacro if-let* (varlist then &rest else) ;; <OK>
   "Bind variables according to VARLIST and evaluate THEN or ELSE.
 This is like `if-let' but doesn't handle a VARLIST of the form
 \(SYMBOL SOMETHING) specially."
@@ -361,7 +287,7 @@ This is like `if-let' but doesn't handle a VARLIST of the form
     `(let* ,(nreverse list)
        (if ,(caar list) ,then ,@else))))
 
-(compat-defmacro when-let* (varlist &rest body)
+(compat-defmacro when-let* (varlist &rest body) ;; <OK>
   "Bind variables according to VARLIST and conditionally evaluate BODY.
 This is like `when-let' but doesn't handle a VARLIST of the form
 \(SYMBOL SOMETHING) specially."
@@ -379,11 +305,10 @@ This is like `when-let' but doesn't handle a VARLIST of the form
     `(let* ,(nreverse list)
        (when ,(caar list) ,@body))))
 
-(compat-defmacro and-let* (varlist &rest body)
+(compat-defmacro and-let* (varlist &rest body) ;; <OK>
   "Bind variables according to VARLIST and conditionally evaluate BODY.
 Like `when-let*', except if BODY is empty and all the bindings
 are non-nil, then the result is non-nil."
-  :feature 'subr-x
   (declare (indent 1)
            (debug ((&rest [&or symbolp (symbolp form) (form)])
                    body)))
@@ -402,8 +327,7 @@ are non-nil, then the result is non-nil."
 
 (declare-function temporary-file-directory nil)
 
-;;* UNTESTED
-(compat-defun make-nearby-temp-file (prefix &optional dir-flag suffix)
+(compat-defun make-nearby-temp-file (prefix &optional dir-flag suffix) ;; <UNTESTED>
   "Create a temporary file as close as possible to `default-directory'.
 If PREFIX is a relative file name, and `default-directory' is a
 remote file name or located on a mounted file systems, the
@@ -426,7 +350,7 @@ same meaning as in `make-temp-file'."
          "^" (regexp-opt '("/afs/" "/media/" "/mnt" "/net/" "/tmp_mnt/")))))
   "File systems that ought to be mounted.")
 
-(compat-defun file-local-name (file)
+(compat-defun file-local-name (file) ;; <OK>
   "Return the local name component of FILE.
 This function removes from FILE the specification of the remote host
 and the method of accessing the host, leaving only the part that
@@ -435,14 +359,14 @@ The returned file name can be used directly as argument of
 `process-file', `start-file-process', or `shell-command'."
   (or (file-remote-p file 'localname) file))
 
-(compat-defun file-name-quoted-p (name &optional top)
+(compat-defun file-name-quoted-p (name &optional top) ;; <OK>
   "Whether NAME is quoted with prefix \"/:\".
 If NAME is a remote file name and TOP is nil, check the local part of NAME."
   :explicit t
   (let ((file-name-handler-alist (unless top file-name-handler-alist)))
     (string-prefix-p "/:" (file-local-name name))))
 
-(compat-defun file-name-quote (name &optional top)
+(compat-defun file-name-quote (name &optional top) ;; <OK>
   "Add the quotation prefix \"/:\" to file NAME.
 If NAME is a remote file name and TOP is nil, the local part of
 NAME is quoted.  If NAME is already a quoted file name, NAME is
@@ -453,8 +377,7 @@ returned unchanged."
         name
       (concat (file-remote-p name) "/:" (file-local-name name)))))
 
-;;* UNTESTED
-(compat-defun temporary-file-directory ()
+(compat-defun temporary-file-directory () ;; <UNTESTED>
   "The directory for writing temporary files.
 In case of a remote `default-directory', this is a directory for
 temporary files on that remote host.  If such a directory does
@@ -471,79 +394,68 @@ the variable `temporary-file-directory' is returned."
           default-directory
         temporary-file-directory))))
 
-;;* UNTESTED
-(compat-defun file-attribute-type (attributes)
+(compat-defun file-attribute-type (attributes) ;; <OK>
   "The type field in ATTRIBUTES returned by `file-attributes'.
 The value is either t for directory, string (name linked to) for
 symbolic link, or nil."
   (nth 0 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-link-number (attributes)
+(compat-defun file-attribute-link-number (attributes) ;; <OK>
   "Return the number of links in ATTRIBUTES returned by `file-attributes'."
   (nth 1 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-user-id (attributes)
+(compat-defun file-attribute-user-id (attributes) ;; <OK>
   "The UID field in ATTRIBUTES returned by `file-attributes'.
 This is either a string or a number.  If a string value cannot be
 looked up, a numeric value, either an integer or a float, is
 returned."
   (nth 2 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-group-id (attributes)
+(compat-defun file-attribute-group-id (attributes) ;; <OK>
   "The GID field in ATTRIBUTES returned by `file-attributes'.
 This is either a string or a number.  If a string value cannot be
 looked up, a numeric value, either an integer or a float, is
 returned."
   (nth 3 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-access-time (attributes)
+(compat-defun file-attribute-access-time (attributes) ;; <OK>
   "The last access time in ATTRIBUTES returned by `file-attributes'.
 This a Lisp timestamp in the style of `current-time'."
   (nth 4 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-modification-time (attributes)
+(compat-defun file-attribute-modification-time (attributes) ;; <OK>
   "The modification time in ATTRIBUTES returned by `file-attributes'.
 This is the time of the last change to the file's contents, and
 is a Lisp timestamp in the style of `current-time'."
   (nth 5 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-status-change-time (attributes)
+(compat-defun file-attribute-status-change-time (attributes) ;; <OK>
   "The status modification time in ATTRIBUTES returned by `file-attributes'.
 This is the time of last change to the file's attributes: owner
 and group, access mode bits, etc., and is a Lisp timestamp in the
 style of `current-time'."
   (nth 6 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-size (attributes)
+(compat-defun file-attribute-size (attributes) ;; <OK>
   "The integer size (in bytes) in ATTRIBUTES returned by `file-attributes'."
   (nth 7 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-modes (attributes)
+(compat-defun file-attribute-modes (attributes) ;; <OK>
   "The file modes in ATTRIBUTES returned by `file-attributes'.
 This is a string of ten letters or dashes as in ls -l."
   (nth 8 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-inode-number (attributes)
+(compat-defun file-attribute-inode-number (attributes) ;; <OK>
   "The inode number in ATTRIBUTES returned by `file-attributes'.
 It is a nonnegative integer."
   (nth 10 attributes))
 
-;;* UNTESTED
-(compat-defun file-attribute-device-number (attributes)
+(compat-defun file-attribute-device-number (attributes) ;; <OK>
   "The file system device number in ATTRIBUTES returned by `file-attributes'.
 It is an integer."
   (nth 11 attributes))
 
-(compat-defun file-attribute-collect (attributes &rest attr-names)
+(compat-defun file-attribute-collect (attributes &rest attr-names) ;; <OK>
   "Return a sublist of ATTRIBUTES returned by `file-attributes'.
 ATTR-NAMES are symbols with the selected attribute names.
 
@@ -573,17 +485,16 @@ inode-number and device-number."
 
 ;;;; Defined in image.el
 
-;;* UNTESTED
-(compat-defun image-property (image property)
+(compat-defun image-property (image property) ;; <UNTESTED>
   "Return the value of PROPERTY in IMAGE.
 Properties can be set with
 
   (setf (image-property IMAGE PROPERTY) VALUE)
 
 If VALUE is nil, PROPERTY is removed from IMAGE."
+  ;; :feature image
   (plist-get (cdr image) property))
 
-;;* UNTESTED
 (unless (get 'image-property 'gv-expander)
   (gv-define-setter image-property (image property value)
     (let ((image* (make-symbol "image"))
@@ -611,8 +522,7 @@ If VALUE is nil, PROPERTY is removed from IMAGE."
 
 ;;;; Defined in rmc.el
 
-;;*UNTESTED
-(compat-defun read-multiple-choice
+(compat-defun read-multiple-choice ;; <UNTESTED>
     (prompt choices &optional _help-string _show-help long-form)
   "Ask user to select an entry from CHOICES, promting with PROMPT.
 This function allows to ask the user a multiple-choice question.

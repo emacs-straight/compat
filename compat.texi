@@ -143,6 +143,30 @@ call these definitions ``Explicit Definitions''. In contrast,
 (mapcan FUNCTION SEQUENCE)               ;; Implicit
 @end example
 
+@defmac compat-call FUN &rest ARGS
+This macro calls the compatibility function FUN with ARGS.  Many
+functions provided by Compat can be called directly without this
+macro.  However in the case where Compat provides an alternative
+version of an exisiting function, the function call has to go through
+@code{compat-call}.  This happens for example when the calling
+convention of a function has changed.
+@end defmac
+
+@defmac compat-function FUN
+This macro returns the compatibility function symbol for FUN.  See
+@code{compat-call} for a more convenient macro to directly call
+compatibility functions.
+@end defmac
+
+If you intend to use a compatibility function in your code it is
+strongly recommended that you check the tests in
+@file{compat-tests.el}.  Alternatively grep the Compat code for
+<UNTESTED> labels.  There you will find the supported calling
+convention, which is guaranteed to work on the supported Emacs
+versions. We ensure this using continuous integration.  FUNCTIONS
+WITHOUT TESTS SHOULD BE CONSIDERED BROKEN.  You are invited to
+contribute missing tests.
+
 It is recommended to subscribe to the
 @uref{https://lists.sr.ht/~pkal/compat-announce, compat-announce}
 mailing list to be notified when new versions are released or relevant
@@ -155,7 +179,7 @@ The library intends to provide support back until Emacs 24.4.  The
 intended audience are package developers that are interested in using
 newer developments, without having to break compatibility.
 
-Sadly, total backwards compatibility cannot be provided for technical
+Total backwards compatibility cannot be provided for technical
 reasons.  These might include:
 
 @itemize
@@ -165,7 +189,7 @@ To support these cases, the function or macro would have to be
 advised. As this is regarded as invasive and adds significant
 overhead, even when the new feature is not used, this approach is not
 used. As a compromise, compatibility functions and macros with a
-changed calling convetion can be accessed via the
+changed calling convention can be accessed via the
 @code{compat-function} and @code{compat-call} macros.
 
 @item
@@ -180,9 +204,9 @@ other times it would be infeasible to duplicate an entire library within
 Compat while also providing the necessary backwards compatibility.
 
 @item
-It just wasn't added, and there is no good reason (though good excuses
-might exist).  If you happen to find such a function, @ref{Development,
-, reporting} it would be much appreciated.
+It just wasn't added, and there is no good reason.  If you happen to
+find such a function, @ref{Development, , reporting} it would be much
+appreciated.
 
 Always begin by assuming that this might be the case, unless proven
 otherwise.
@@ -209,41 +233,6 @@ manage to provide for each Emacs version.
 @subsection Implicit Definitions
 The following functions and macros implemented in 24.4, and are provided
 by Compat:
-
-@c copied from lispref/loading.texi
-@defmac with-eval-after-load library body@dots{}
-This macro arranges to evaluate @var{body} at the end of loading the
-file @var{library}, each time @var{library} is loaded.  If @var{library}
-is already loaded, it evaluates @var{body} right away.
-
-You don't need to give a directory or extension in the file name
-@var{library}.  Normally, you just give a bare file name, like this:
-
-@example
-(with-eval-after-load "js" (keymap-set js-mode-map "C-c C-c" 'js-eval))
-@end example
-
-To restrict which files can trigger the evaluation, include a directory
-or an extension or both in @var{library}.  Only a file whose absolute
-true name (i.e., the name with all symbolic links chased out) matches
-all the given name components will match.  In the following example,
-@file{my_inst.elc} or @file{my_inst.elc.gz} in some directory
-@code{..../foo/bar} will trigger the evaluation, but not
-@file{my_inst.el}:
-
-@example
-(with-eval-after-load "foo/bar/my_inst.elc" @dots{})
-@end example
-
-@var{library} can also be a feature (i.e., a symbol), in which case
-@var{body} is evaluated at the end of any file where @code{(provide
-@var{library})} is called.
-
-An error in @var{body} does not undo the load, but does prevent
-execution of the rest of @var{body}.
-
-@xref{Hooks for Loading,,,elisp}.
-@end defmac
 
 @c copied from lispref/eval.texi
 @defun special-form-p object
@@ -754,36 +743,6 @@ The following functions and macros implemented in 26.1, and are provided
 by Compat:
 
 @c copied from lispref/functions.texi
-@defun func-arity function
-This function provides information about the argument list of the
-specified @var{function}.  The returned value is a cons cell of the form
-@w{@code{(@var{min} . @var{max})}}, where @var{min} is the minimum
-number of arguments, and @var{max} is either the maximum number of
-arguments, or the symbol @code{many} for functions with @code{&rest}
-arguments, or the symbol @code{unevalled} if @var{function} is a special
-form.
-
-Note that this function might return inaccurate results in some
-situations, such as the following:
-
-@itemize @minus
-@item
-Functions defined using @code{apply-partially} (@pxref{Calling
-Functions,apply-partially,,elisp}).
-
-@item
-Functions that are advised using @code{advice-add} (@pxref{Advising
-Named Functions,,,elisp}).
-
-@item
-Functions that determine the argument list dynamically, as part of their
-code.
-@end itemize
-
-@xref{What Is a Function,,,elisp}.
-@end defun
-
-@c copied from lispref/functions.texi
 @defun mapcan function sequence
 This function applies @var{function} to each element of @var{sequence},
 like @code{mapcar}, but instead of collecting the results into a list,
@@ -905,41 +864,6 @@ Processes,,,elisp}), and as the program to run on the remote host.  If
 
 @xref{Magic File Names,,,elisp}.
 @end defun
-
-@c copied from lispref/files.texi
-@defmac file-name-quoted-p name
-This macro returns non-@code{nil}, when @var{name} is quoted with the
-prefix @samp{/:}.  If @var{name} is a remote file name, the local part
-of @var{name} is checked.
-
-@xref{File Name Expansion,,,elisp}.
-@end defmac
-
-@c copied from lispref/files.texi
-@defmac file-name-quote name
-This macro adds the quotation prefix @samp{/:} to the file @var{name}.
-For a local file @var{name}, it prefixes @var{name} with @samp{/:}.  If
-@var{name} is a remote file name, the local part of @var{name}
-(@pxref{Magic File Names,,,elisp}) is quoted.  If @var{name} is already
-a quoted file name, @var{name} is returned unchanged.
-
-@example
-@group
-(substitute-in-file-name (file-name-quote "bar/~/foo")) @result{}
-     "/:bar/~/foo"
-@end group
-
-@group
-(substitute-in-file-name (file-name-quote "/ssh:host:bar/~/foo"))
-     @result{} "/ssh:host:/:bar/~/foo"
-@end group
-@end example
-
-The macro cannot be used to suppress file name handlers from magic file
-names (@pxref{Magic File Names,,,elisp}).
-
-@xref{File Name Expansion,,,elisp}.
-@end defmac
 
 @defun read-multiple-choice prompt choices &optional help-string show-help long-form
 Ask user a multiple choice question.  @var{prompt} should be a string
@@ -1134,6 +1058,41 @@ to @samp{[ \t\n\r]+}.
 
 The compatibility version handles the optional arguments @var{trim-left}
 and @var{trim-right}.
+@end defun
+
+@c copied from lispref/files.texi
+@defun compat-call@ file-name-quoted-p name
+This macro returns non-@code{nil}, when @var{name} is quoted with the
+prefix @samp{/:}.  If @var{name} is a remote file name, the local part
+of @var{name} is checked.
+
+@xref{File Name Expansion,,,elisp}.
+@end defun
+
+@c copied from lispref/files.texi
+@defun compat-call@ file-name-quote name
+This macro adds the quotation prefix @samp{/:} to the file @var{name}.
+For a local file @var{name}, it prefixes @var{name} with @samp{/:}.  If
+@var{name} is a remote file name, the local part of @var{name}
+(@pxref{Magic File Names,,,elisp}) is quoted.  If @var{name} is already
+a quoted file name, @var{name} is returned unchanged.
+
+@example
+@group
+(substitute-in-file-name (compat-call file-name-quote "bar/~/foo")) @result{}
+     "/:bar/~/foo"
+@end group
+
+@group
+(substitute-in-file-name (compat-call file-name-quote "/ssh:host:bar/~/foo"))
+     @result{} "/ssh:host:/:bar/~/foo"
+@end group
+@end example
+
+The macro cannot be used to suppress file name handlers from magic file
+names (@pxref{Magic File Names,,,elisp}).
+
+@xref{File Name Expansion,,,elisp}.
 @end defun
 
 @subsection Missing Definitions
@@ -1499,7 +1458,7 @@ keymaps, instead of just a singular keymap.
 @end defun
 
 @c based on lispref/variables.texi
-@defmac setq-local &rest pairs
+@defmac compat-call@ setq-local &rest pairs
 @var{pairs} is a list of variable and value pairs.  This macro creates
 a buffer-local binding in the current buffer for each of the
 variables, and gives them a buffer-local value.  It is equivalent to
@@ -3006,19 +2965,15 @@ The function @code{pp-emacs-lisp-code}.
 @node Development
 @chapter Development
 
-Compat is developed on @uref{https://sr.ht/~pkal/compat, SourceHut}. A
-restricted @uref{https://github.com/phikal/compat.el, GitHub mirror} is
-also maintained.
+Compat is developed on GitHub and mirrored to SourceHut.
 
 Patches and comments can be sent to the
-@uref{https://lists.sr.ht/~pkal/compat-devel, development mailing list}
-(@email{~pkal/compat-devel@@lists.sr.ht,
+@uref{https://lists.sr.ht/~pkal/compat-devel, development mailing
+list} (@email{~pkal/compat-devel@@lists.sr.ht,
 ~pkal/compat-devel@@lists.sr.ht}).  Bug reports are best sent to the
-@uref{https://todo.sr.ht/~pkal/compat, issue tracker}
-(@email{~pkal/compat@@todo.sr.ht, ~pkal/compat@@todo.sr.ht}).  The
-GitHub mirror can also be used to submit patches.  These may include
-issues in the compatibility code, missing definitions or performance
-issues.
+@uref{https://github.com/emacs-compat/compat/issues, issue tracker}.
+These may include issues in the compatibility code, missing
+definitions or performance issues.
 
 Please note that as a GNU ELPA package, Compat requires contributors to
 have signed the

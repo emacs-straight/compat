@@ -10,15 +10,17 @@ BYTEC = compat-24.elc \
 	compat-27.elc \
 	compat-28.elc \
 	compat-29.elc \
-	compat.elc
+	compat.elc \
+	compat-tests.elc
 
 all: compile
 
 compile: $(BYTEC)
 
-test: clean
+test: compile
 	$(EMACS) --version
 	$(EMACS) -Q --batch -L . -l compat-tests.el -f ert-run-tests-batch-and-exit
+	$(EMACS) -Q --batch -L . -l compat-tests.elc -f ert-run-tests-batch-and-exit
 
 clean:
 	$(RM) $(BYTEC) compat.info

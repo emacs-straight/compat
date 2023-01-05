@@ -6,7 +6,7 @@
 ;; Maintainer: Daniel Mendler <mail@daniel-mendler.de>, Compat Development <~pkal/compat-devel@lists.sr.ht>
 ;; Version: 29.1.0.0-git
 ;; URL: https://github.com/emacs-compat/compat
-;; Package-Requires: ((emacs "24.4") (nadvice "0.3"))
+;; Package-Requires: ((emacs "24.4"))
 ;; Keywords: lisp
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -51,7 +51,7 @@ FUN, the symbol FUN is returned itself."
     `#',(if (fboundp compat) compat fun)))
 
 (defmacro compat-call (fun &rest args)
-  "Call compatibility function FUN with ARGS.
+  "Call compatibility function or macro FUN with ARGS.
 
 See `compat-function' for the compatibility function resolution."
   (let ((compat (intern (format "compat--%s" fun))))

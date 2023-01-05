@@ -29,7 +29,7 @@
 ;;;; Defined in fns.c
 
 ;;* INCOMPLETE FEATURE: Should handle multibyte regular expressions
-(compat-defun string-search (needle haystack &optional start-pos)
+(compat-defun string-search (needle haystack &optional start-pos) ;; <OK>
   "Search for the string NEEDLE in the strign HAYSTACK.
 
 The return value is the position of the first occurrence of
@@ -52,7 +52,7 @@ issues are inherited."
     (let ((case-fold-search nil))
       (string-match (regexp-quote needle) haystack start-pos))))
 
-(compat-defun length= (sequence length)
+(compat-defun length= (sequence length) ;; <OK>
   "Returns non-nil if SEQUENCE has a length equal to LENGTH."
   (cond
    ((null sequence) (zerop length))
@@ -64,7 +64,7 @@ issues are inherited."
     (= (length sequence) length))
    ((signal 'wrong-type-argument sequence))))
 
-(compat-defun length< (sequence length)
+(compat-defun length< (sequence length) ;; <OK>
   "Returns non-nil if SEQUENCE is shorter than LENGTH."
   (cond
    ((null sequence) (not (zerop length)))
@@ -74,7 +74,7 @@ issues are inherited."
     (< (length sequence) length))
    ((signal 'wrong-type-argument sequence))))
 
-(compat-defun length> (sequence length)
+(compat-defun length> (sequence length) ;; <OK>
   "Returns non-nil if SEQUENCE is longer than LENGTH."
   (cond
    ((listp sequence)
@@ -85,7 +85,7 @@ issues are inherited."
 
 ;;;; Defined in fileio.c
 
-(compat-defun file-name-concat (directory &rest components)
+(compat-defun file-name-concat (directory &rest components) ;; <UNTESTED>
   "Append COMPONENTS to DIRECTORY and return the resulting string.
 Elements in COMPONENTS must be a string or nil.
 DIRECTORY or the non-final elements in COMPONENTS may or may not end
@@ -105,8 +105,7 @@ inserted before contatenating."
 
 ;;;; Defined in alloc.c
 
-;;* UNTESTED (but also not necessary)
-(compat-defun garbage-collect-maybe (_factor)
+(compat-defun garbage-collect-maybe (_factor) ;; <OK>
   "Call ‘garbage-collect’ if enough allocation happened.
 FACTOR determines what \"enough\" means here: If FACTOR is a
 positive number N, it means to run GC if more than 1/Nth of the
@@ -120,7 +119,7 @@ NOTE: For releases of Emacs before version 28, this function will do nothing."
 
 ;;;; Defined in filelock.c
 
-(compat-defun unlock-buffer ()
+(compat-defun unlock-buffer () ;; <UNTESTED>
   "Handle `file-error' conditions:
 
 Handles file system errors by calling ‘display-warning’ and
@@ -136,7 +135,7 @@ continuing as if the error did not occur."
 
 ;;;; Defined in characters.c
 
-(compat-defun string-width (string &optional from to)
+(compat-defun string-width (string &optional from to) ;; <OK>
   "Handle optional arguments FROM and TO:
 
 Optional arguments FROM and TO specify the substring of STRING to
@@ -151,8 +150,7 @@ consider, and are interpreted as in `substring'."
 
 ;;;; Defined in dired.c
 
-;;* UNTESTED
-(compat-defun directory-files (directory &optional full match nosort count)
+(compat-defun directory-files (directory &optional full match nosort count) ;; <UNTESTED>
   "Handle additional optional argument COUNT:
 
 If COUNT is non-nil and a natural number, the function will
@@ -170,7 +168,7 @@ If COUNT is non-nil and a natural number, the function will
 (declare-function json-parse-string nil (string &rest args))
 (declare-function json-parse-buffer nil (&rest args))
 
-(compat-defun json-serialize (object &rest args)
+(compat-defun json-serialize (object &rest args) ;; <UNTESTED>
   "Handle top-level JSON values."
   :explicit t
   :min-version "27"
@@ -178,7 +176,7 @@ If COUNT is non-nil and a natural number, the function will
       (apply #'json-serialize object args)
     (substring (json-serialize (list object)) 1 -1)))
 
-(compat-defun json-insert (object &rest args)
+(compat-defun json-insert (object &rest args) ;; <UNTESTED>
   "Handle top-level JSON values."
   :explicit t
   :min-version "27"
@@ -191,7 +189,7 @@ If COUNT is non-nil and a natural number, the function will
     ;; been defined.
     (insert (apply 'compat-json-serialize object args))))
 
-(compat-defun json-parse-string (string &rest args)
+(compat-defun json-parse-string (string &rest args) ;; <UNTESTED>
   "Handle top-level JSON values."
   :explicit t
   :min-version "27"
@@ -202,7 +200,7 @@ If COUNT is non-nil and a natural number, the function will
     ;; is we can access the first element.
     (elt (apply #'json-parse-string (concat "[" string "]") args) 0)))
 
-(compat-defun json-parse-buffer (&rest args)
+(compat-defun json-parse-buffer (&rest args) ;; <UNTESTED>
   "Handle top-level JSON values."
   :explicit t
   :min-version "27"
@@ -224,7 +222,7 @@ If COUNT is non-nil and a natural number, the function will
 
 ;;;; xfaces.c
 
-(compat-defun color-values-from-color-spec (spec)
+(compat-defun color-values-from-color-spec (spec) ;; <OK>
   "Parse color SPEC as a numeric color and return (RED GREEN BLUE).
 This function recognises the following formats for SPEC:
 
@@ -301,7 +299,7 @@ and BLUE, is normalized to have its value in [0,65535]."
 ;;;; Defined in subr.el
 
 ;;* INCOMPLETE FEATURE: Should handle multibyte regular expressions
-(compat-defun string-replace (fromstring tostring instring)
+(compat-defun string-replace (fromstring tostring instring) ;; <OK>
   "Replace FROMSTRING with TOSTRING in INSTRING each time it occurs."
   (when (equal fromstring "")
     (signal 'wrong-length-argument '(0)))
@@ -311,14 +309,13 @@ and BLUE, is normalized to have its value in [0,65535]."
      tostring instring
      t t)))
 
-(compat-defun always (&rest _arguments)
+(compat-defun always (&rest _arguments) ;; <OK>
   "Do nothing and return t.
 This function accepts any number of ARGUMENTS, but ignores them.
 Also see `ignore'."
   t)
 
-;;* UNTESTED
-(compat-defun insert-into-buffer (buffer &optional start end)
+(compat-defun insert-into-buffer (buffer &optional start end) ;; <OK>
   "Insert the contents of the current buffer into BUFFER.
 If START/END, only insert that region from the current buffer.
 Point in BUFFER will be placed after the inserted text."
@@ -326,8 +323,7 @@ Point in BUFFER will be placed after the inserted text."
     (with-current-buffer buffer
       (insert-buffer-substring current start end))))
 
-;;* UNTESTED
-(compat-defun replace-string-in-region (string replacement &optional start end)
+(compat-defun replace-string-in-region (string replacement &optional start end) ;; <UNTESTED>
   "Replace STRING with REPLACEMENT in the region from START to END.
 The number of replaced occurrences are returned, or nil if STRING
 doesn't exist in the region.
@@ -354,8 +350,7 @@ Comparisons and replacements are done with fixed case."
       (and (not (zerop matches))
            matches))))
 
-;;* UNTESTED
-(compat-defun replace-regexp-in-region (regexp replacement &optional start end)
+(compat-defun replace-regexp-in-region (regexp replacement &optional start end) ;; <UNTESTED>
   "Replace REGEXP with REPLACEMENT in the region from START to END.
 The number of replaced occurrences are returned, or nil if REGEXP
 doesn't exist in the region.
@@ -389,8 +384,7 @@ REPLACEMENT can use the following special elements:
       (and (not (zerop matches))
            matches))))
 
-;;* UNTESTED
-(compat-defun buffer-local-boundp (symbol buffer)
+(compat-defun buffer-local-boundp (symbol buffer) ;; <OK>
   "Return non-nil if SYMBOL is bound in BUFFER.
 Also see `local-variable-p'."
   (catch 'fail
@@ -399,8 +393,7 @@ Also see `local-variable-p'."
       (void-variable nil (throw 'fail nil)))
     t))
 
-;;* UNTESTED
-(compat-defmacro with-existing-directory (&rest body)
+(compat-defmacro with-existing-directory (&rest body) ;; <UNTESTED>
   "Execute BODY with `default-directory' bound to an existing directory.
 If `default-directory' is already an existing directory, it's not changed."
   (declare (indent 0) (debug t))
@@ -417,8 +410,7 @@ If `default-directory' is already an existing directory, it's not changed."
            (throw ',quit (let ((default-directory dir))
                            ,@body)))))))
 
-;;* UNTESTED
-(compat-defmacro dlet (binders &rest body)
+(compat-defmacro dlet (binders &rest body) ;; <UNTESTED>
   "Like `let' but using dynamic scoping."
   (declare (indent 1) (debug let))
   `(let (_)
@@ -427,7 +419,7 @@ If `default-directory' is already an existing directory, it's not changed."
                binders)
      (let ,binders ,@body)))
 
-(compat-defun ensure-list (object)
+(compat-defun ensure-list (object) ;; <OK>
   "Return OBJECT as a list.
 If OBJECT is already a list, return OBJECT itself.  If it's
 not a list, return a one-element list containing OBJECT."
@@ -435,18 +427,17 @@ not a list, return a one-element list containing OBJECT."
       object
     (list object)))
 
-(compat-defun subr-primitive-p (object)
+(compat-defun subr-primitive-p (object) ;; <OK>
   "Return t if OBJECT is a built-in primitive function."
   (subrp object))
 
 ;;;; Defined in subr-x.el
 
-(compat-defun string-clean-whitespace (string)
+(compat-defun string-clean-whitespace (string) ;; <OK>
   "Clean up whitespace in STRING.
 All sequences of whitespaces in STRING are collapsed into a
 single space character, and leading/trailing whitespace is
 removed."
-  :feature 'subr-x
   (let ((blank "[[:blank:]\r\n]+"))
     (replace-regexp-in-string
      "^[[:blank:]\r\n]+\\|[[:blank:]\r\n]+$"
@@ -454,12 +445,11 @@ removed."
      (replace-regexp-in-string
       blank " " string))))
 
-(compat-defun string-fill (string length)
+(compat-defun string-fill (string length) ;; <OK>
   "Clean up whitespace in STRING.
 All sequences of whitespaces in STRING are collapsed into a
 single space character, and leading/trailing whitespace is
 removed."
-  :feature 'subr-x
   (with-temp-buffer
     (insert string)
     (goto-char (point-min))
@@ -468,13 +458,12 @@ removed."
       (fill-region (point-min) (point-max)))
     (buffer-string)))
 
-(compat-defun string-lines (string &optional omit-nulls)
+(compat-defun string-lines (string &optional omit-nulls) ;; <OK>
   "Split STRING into a list of lines.
 If OMIT-NULLS, empty lines will be removed from the results."
-  :feature 'subr-x
   (split-string string "\n" omit-nulls))
 
-(compat-defun string-pad (string length &optional padding start)
+(compat-defun string-pad (string length &optional padding start) ;; <OK>
   "Pad STRING to LENGTH using PADDING.
 If PADDING is nil, the space character is used.  If not nil, it
 should be a character.
@@ -485,7 +474,6 @@ is done.
 If START is nil (or not present), the padding is done to the end
 of the string, and if non-nil, padding is done to the start of
 the string."
-  :feature 'subr-x
   (unless (natnump length)
     (signal 'wrong-type-argument (list 'natnump length)))
   (let ((pad-length (- length (length string))))
@@ -497,20 +485,18 @@ the string."
               (and (not start)
                    (make-string pad-length (or padding ?\s)))))))
 
-(compat-defun string-chop-newline (string)
+(compat-defun string-chop-newline (string) ;; <OK>
   "Remove the final newline (if any) from STRING."
-  :feature 'subr-x
   (if (and (>= (length string) 1) (= (aref string (1- (length string))) ?\n))
       (substring string 0 -1)
     string))
 
-(compat-defmacro named-let (name bindings &rest body)
+(compat-defmacro named-let (name bindings &rest body) ;; <OK>
   "Looping construct taken from Scheme.
 Like `let', bind variables in BINDINGS and then evaluate BODY,
 but with the twist that BODY can evaluate itself recursively by
 calling NAME, where the arguments passed to NAME are used
 as the new values of the bound variables in the recursive invocation."
-  :feature 'subr-x
   (declare (indent 2) (debug (symbolp (&rest (symbolp form)) body)))
   (let ((fargs (mapcar (lambda (b)
                          (let ((var (if (consp b) (car b) b)))
@@ -594,7 +580,7 @@ as the new values of the bound variables in the recursive invocation."
 
 ;;;; Defined in files.el
 
-(compat-defun file-name-with-extension (filename extension)
+(compat-defun file-name-with-extension (filename extension) ;; <OK>
   "Set the EXTENSION of a FILENAME.
 The extension (in a file name) is the part that begins with the last \".\".
 
@@ -605,7 +591,9 @@ Errors if the FILENAME or EXTENSION are empty, or if the given
 FILENAME has the format of a directory.
 
 See also `file-name-sans-extension'."
-  (let ((extn (compat--internal-string-trim-left extension "[.]")))
+  (let ((extn (if (string-prefix-p "." extension)
+                  (substring extension 1)
+                extension)))
     (cond
      ((string= filename "")
       (error "Empty filename"))
@@ -616,8 +604,7 @@ See also `file-name-sans-extension'."
      (t
       (concat (file-name-sans-extension filename) "." extn)))))
 
-;;* UNTESTED
-(compat-defun directory-empty-p (dir)
+(compat-defun directory-empty-p (dir) ;; <UNTESTED>
   "Return t if DIR names an existing directory containing no other files.
 Return nil if DIR does not name a directory, or if there was
 trouble determining whether DIR is a directory or empty.
@@ -627,7 +614,7 @@ See `file-symlink-p' to distinguish symlinks."
   (and (file-directory-p dir)
        (null (directory-files dir nil directory-files-no-dot-files-regexp t))))
 
-(compat-defun file-modes-number-to-symbolic (mode &optional filetype)
+(compat-defun file-modes-number-to-symbolic (mode &optional filetype) ;; <OK>
   "Return a string describing a file's MODE.
 For instance, if MODE is #o700, then it produces `-rwx------'.
 FILETYPE if provided should be a character denoting the type of file,
@@ -665,8 +652,7 @@ the leading `-' char."
        (if (zerop (logand   1 mode)) ?- ?x)
      (if (zerop (logand   1 mode)) ?T ?t))))
 
-;;* UNTESTED
-(compat-defun file-backup-file-names (filename)
+(compat-defun file-backup-file-names (filename) ;; <UNTESTED>
   "Return a list of backup files for FILENAME.
 The list will be sorted by modification time so that the most
 recent files are first."
@@ -685,7 +671,7 @@ recent files are first."
           (push candidate files))))
     (sort files #'file-newer-than-file-p)))
 
-(compat-defun make-lock-file-name (filename)
+(compat-defun make-lock-file-name (filename) ;; <OK>
   "Make a lock file name for FILENAME.
 This prepends \".#\" to the non-directory part of FILENAME, and
 doesn't respect `lock-file-name-transforms', as Emacs 28.1 and
@@ -699,8 +685,7 @@ onwards does."
 
 (declare-function tramp-tramp-file-p "tramp" (name))
 
-;;* UNTESTED
-(compat-defun null-device ()
+(compat-defun null-device () ;; <UNTESTED>
   "Return the best guess for the null device."
   (require 'tramp)
   (if (tramp-tramp-file-p default-directory)
@@ -709,7 +694,7 @@ onwards does."
 
 ;;;; Defined in minibuffer.el
 
-(compat-defun format-prompt (prompt default &rest format-args)
+(compat-defun format-prompt (prompt default &rest format-args) ;; <OK>
   "Format PROMPT with DEFAULT.
 If FORMAT-ARGS is nil, PROMPT is used as a plain string.  If
 FORMAT-ARGS is non-nil, PROMPT is used as a format control
@@ -736,8 +721,7 @@ is included in the return value."
 
 ;;;; Defined in windows.el
 
-;;* UNTESTED
-(compat-defun count-windows (&optional minibuf all-frames)
+(compat-defun count-windows (&optional minibuf all-frames) ;; <UNTESTED>
   "Handle optional argument ALL-FRAMES:
 
 If ALL-FRAMES is non-nil, count the windows in all frames instead
@@ -755,35 +739,32 @@ just the selected frame."
 
 (declare-function mouse-set-point "mouse" (event &optional promote-to-region))
 
-;;* UNTESTED
-(compat-defun thing-at-mouse (event thing &optional no-properties)
+(compat-defun thing-at-mouse (event thing &optional no-properties) ;; <UNTESTED>
   "Return the THING at mouse click.
 Like `thing-at-point', but tries to use the event
 where the mouse button is clicked to find a thing nearby."
-  :feature 'thingatpt
+  :feature thingatpt
   (save-excursion
     (mouse-set-point event)
     (thing-at-point thing no-properties)))
 
 ;;;; Defined in macroexp.el
 
-;;* UNTESTED
-(compat-defun macroexp-file-name ()
+(compat-defun macroexp-file-name () ;; <UNTESTED>
   "Return the name of the file from which the code comes.
 Returns nil when we do not know.
 A non-nil result is expected to be reliable when called from a macro in order
 to find the file in which the macro's call was found, and it should be
 reliable as well when used at the top-level of a file.
 Other uses risk returning non-nil value that point to the wrong file."
-  :feature 'macroexp
+  :feature macroexp
   (let ((file (car (last current-load-list))))
     (or (if (stringp file) file)
         (bound-and-true-p byte-compile-current-file))))
 
 ;;;; Defined in env.el
 
-;;* UNTESTED
-(compat-defmacro with-environment-variables (variables &rest body)
+(compat-defmacro with-environment-variables (variables &rest body) ;; <UNTESTED>
   "Set VARIABLES in the environent and execute BODY.
 VARIABLES is a list of variable settings of the form (VAR VALUE),
 where VAR is the name of the variable (a string) and VALUE
@@ -801,13 +782,12 @@ The previous values will be be restored upon exit."
 
 ;;;; Defined in button.el
 
-;;* UNTESTED
-(compat-defun button-buttonize (string callback &optional data)
+(compat-defun button-buttonize (string callback &optional data) ;; <UNTESTED>
   "Make STRING into a button and return it.
 When clicked, CALLBACK will be called with the DATA as the
 function argument.  If DATA isn't present (or is nil), the button
 itself will be used instead as the function argument."
-  :feature 'button
+  :feature button
   (propertize string
               'face 'button
               'button t
@@ -821,8 +801,7 @@ itself will be used instead as the function argument."
 
 (defvar generated-autoload-file)
 
-;;* UNTESTED
-(compat-defun make-directory-autoloads (dir output-file)
+(compat-defun make-directory-autoloads (dir output-file) ;; <UNTESTED>
   "Update autoload definitions for Lisp files in the directories DIRS.
 DIR can be either a single directory or a list of
 directories.  (The latter usage is discouraged.)
@@ -843,11 +822,11 @@ directory or directories specified."
 
 ;;;; Defined in time-data.el
 
-(compat-defun decoded-time-period (time)
+(compat-defun decoded-time-period (time) ;; <OK>
   "Interpret DECODED as a period and return its length in seconds.
 For computational purposes, years are 365 days long and months
 are 30 days long."
-  :feature 'time-date
+  :feature time-date
   :version "28"
   ;; Inlining the definitions from compat-27
   (+ (if (consp (nth 0 time))
