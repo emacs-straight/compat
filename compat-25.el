@@ -22,7 +22,6 @@
 
 ;;; Code:
 
-(require 'compat-24)
 (eval-when-compile (load "compat-macs.el" nil t t))
 (compat-declare-version "25.1")
 
@@ -58,13 +57,7 @@ usage: (bool-vector &rest OBJECTS)"
 
 ;;;; Defined in editfns.c
 
-(compat-defun format-message (string &rest objects) ;; <OK>
-  "Format a string out of a format-string and arguments.
-The first argument is a format control string.
-The other arguments are substituted into it to make the result, a string.
-
-This implementation is equivalent to `format'."
-  (apply #'format string objects))
+(compat-defalias format-message format) ;; <OK>
 
 ;;;; Defined in fileio.c
 
@@ -83,7 +76,7 @@ Case is significant.
 Symbols are also allowed; their print names are used instead."
   (string-lessp string2 string1))
 
-(compat-defmacro with-file-modes (modes &rest body) ;; <UNTESTED>
+(compat-defmacro with-file-modes (modes &rest body) ;; <OK>
   "Execute BODY with default file permissions temporarily set to MODES.
 MODES is as for `set-default-file-modes'."
   (declare (indent 1) (debug t))
@@ -223,7 +216,6 @@ threading."
 
 ;;;; Defined in macroexp.el
 
-(declare-function macrop nil (object))
 (compat-defun macroexpand-1 (form &optional environment) ;; <OK>
   "Perform (at most) one step of macro expansion."
   :feature macroexp
@@ -251,73 +243,7 @@ threading."
 
 ;;;; Defined in byte-run.el
 
-(compat-defun function-put (func prop value) ;; <OK>
-  "Set FUNCTION's property PROP to VALUE.
-The namespace for PROP is shared with symbols.
-So far, FUNCTION can only be a symbol, not a lambda expression."
-  :version "24.4"
-  (put func prop value))
-
-;;;; Defined in files.el
-
-(compat-defun directory-files-recursively ;; <UNTESTED>
-    (dir regexp &optional include-directories predicate follow-symlinks)
-  "Return list of all files under directory DIR whose names match REGEXP.
-This function works recursively.  Files are returned in \"depth
-first\" order, and files from each directory are sorted in
-alphabetical order.  Each file name appears in the returned list
-in its absolute form.
-
-By default, the returned list excludes directories, but if
-optional argument INCLUDE-DIRECTORIES is non-nil, they are
-included.
-
-PREDICATE can be either nil (which means that all subdirectories
-of DIR are descended into), t (which means that subdirectories that
-can't be read are ignored), or a function (which is called with
-the name of each subdirectory, and should return non-nil if the
-subdirectory is to be descended into).
-
-If FOLLOW-SYMLINKS is non-nil, symbolic links that point to
-directories are followed.  Note that this can lead to infinite
-recursion."
-  (let* ((result nil)
-         (files nil)
-         (dir (directory-file-name dir))
-         ;; When DIR is "/", remote file names like "/method:" could
-         ;; also be offered.  We shall suppress them.
-         (tramp-mode (and tramp-mode (file-remote-p (expand-file-name dir)))))
-    (dolist (file (sort (file-name-all-completions "" dir)
-                        'string<))
-      (unless (member file '("./" "../"))
-        (if (directory-name-p file)
-            (let* ((leaf (substring file 0 (1- (length file))))
-                   (full-file (concat dir "/" leaf)))
-              ;; Don't follow symlinks to other directories.
-              (when (and (or (not (file-symlink-p full-file))
-                             (and (file-symlink-p full-file)
-                                  follow-symlinks))
-                         ;; Allow filtering subdirectories.
-                         (or (eq predicate nil)
-                             (eq predicate t)
-                             (funcall predicate full-file)))
-                (let ((sub-files
-                       (if (eq predicate t)
-                           (condition-case nil
-                               (directory-files-recursively
-                                full-file regexp include-directories
-                                predicate follow-symlinks)
-                             (file-error nil))
-                         (directory-files-recursively
-                          full-file regexp include-directories
-                          predicate follow-symlinks))))
-                  (setq result (nconc result sub-files))))
-              (when (and include-directories
-                         (string-match regexp leaf))
-                (setq result (nconc result (list full-file)))))
-          (when (string-match regexp file)
-            (push (concat dir "/" file) files)))))
-    (nconc result (nreverse files))))
+(compat-defalias function-put put) ;; <OK>
 
 (provide 'compat-25)
 ;;; compat-25.el ends here

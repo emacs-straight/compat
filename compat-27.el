@@ -32,16 +32,14 @@
   "Return OBJECT's length if it is a proper list, nil otherwise.
 A proper list is neither circular nor dotted (i.e., its last cdr
 is nil)."
-  :min-version "26.1"
-  :max-version "26.3"
+  :min-version "26" ;; Errors on 26.1 and newer
   (and (listp object) (ignore-errors (length object))))
 
 (compat-defun proper-list-p (object) ;; <OK>
   "Return OBJECT's length if it is a proper list, nil otherwise.
 A proper list is neither circular nor dotted (i.e., its last cdr
 is nil)."
-  :max-version "26.1"
-  ;; On Emacs older than 25.3 we have to use the Tortoise and Hare algorithm
+  :max-version "26" ;; On older Emacs than 26.1 use Tortoise and Hare algorithm
   (when (listp object)
     (catch 'cycle
       (let ((hare object) (tortoise object)
@@ -115,7 +113,6 @@ Letter-case is significant, but text properties are ignored."
 
 ;;;; Defined in json.c
 
-(declare-function json-parse-string nil (string &rest args))
 (declare-function json-encode "json" (object))
 (declare-function json-read-from-string "json" (string))
 (declare-function json-read "json" ())
@@ -688,10 +685,6 @@ The return value is a string (or nil in case we can’t find it)."
 
 ;;;; Defined in dired.el
 
-(declare-function
- dired-get-marked-files "dired.el"
- (&optional localp arg filter distinguish-one-marked error))
-
 (compat-defun dired-get-marked-files ;; <UNTESTED>
     (&optional localp arg filter distinguish-one-marked error)
   "Return the marked files’ names as list of strings."
@@ -723,37 +716,35 @@ The return value is a string (or nil in case we can’t find it)."
 
 (compat-defun make-prop-match (&rest attr) ;; <OK>
   "Constructor for objects of type ‘prop-match’."
-  :max-version "26.1"
+  :max-version "26"
   :feature text-property-search
-  (vector
-   'prop-match
-   (plist-get attr :beginning)
-   (plist-get attr :end)
-   (plist-get attr :value)))
+  (vector 'prop-match ;; Vector for older than 26.1
+          (plist-get attr :beginning)
+          (plist-get attr :end)
+          (plist-get attr :value)))
 
 (compat-defun make-prop-match (&rest attr) ;; <OK>
   "Constructor for objects of type ‘prop-match’."
-  :min-version "26.1"
+  :min-version "26"
   :feature text-property-search
-  (record
-   'prop-match
-   (plist-get attr :beginning)
-   (plist-get attr :end)
-   (plist-get attr :value)))
+  (record 'prop-match ;; record was introduced with 26.1
+          (plist-get attr :beginning)
+          (plist-get attr :end)
+          (plist-get attr :value)))
 
 (compat-defun prop-match-p (match) ;; <OK>
   "Return non-nil if MATCH is a `prop-match' object."
-  :max-version "26.1"
+  :max-version "26" ;; Vector before 26.1
   :feature text-property-search
-  (and (vectorp match) ;; Vector
+  (and (vectorp match)
        (> (length match) 0)
        (eq (aref match 0) 'prop-match)))
 
 (compat-defun prop-match-p (match) ;; <OK>
   "Return non-nil if MATCH is a `prop-match' object."
-  :min-version "26.1"
+  :min-version "26" ;; Record for 26.1 and newer
   :feature text-property-search
-  (eq (type-of match) 'prop-match)) ;; Record
+  (eq (type-of match) 'prop-match))
 
 (compat-defun prop-match-beginning (match) ;; <OK>
   "Retrieve the position where MATCH begins."

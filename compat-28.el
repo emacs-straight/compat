@@ -85,37 +85,30 @@ issues are inherited."
 
 ;;;; Defined in fileio.c
 
-(compat-defun file-name-concat (directory &rest components) ;; <UNTESTED>
+(compat-defun file-name-concat (directory &rest components) ;; <OK>
   "Append COMPONENTS to DIRECTORY and return the resulting string.
 Elements in COMPONENTS must be a string or nil.
 DIRECTORY or the non-final elements in COMPONENTS may or may not end
 with a slash -- if they don’t end with a slash, a slash will be
 inserted before contatenating."
-  (let ((seperator (eval-when-compile
+  (let ((separator (eval-when-compile
                      (if (memq system-type '(ms-dos windows-nt cygwin))
                          "\\" "/")))
-        (last (if components (car (last components)) directory)))
-    (mapconcat (lambda (part)
-                 (if (eq part last)	;the last component is not modified
-                     last
-                   (replace-regexp-in-string
-                    (concat seperator "+\\'") "" part)))
-               (cons directory components)
-               seperator)))
+        (components (delq nil
+                          (mapcar (lambda (x) (and (not (equal "" x)) x))
+                                  (cons directory components))))
+        (result ""))
+    (while components
+      (let ((c (pop components)))
+        (setq result (concat result c
+                             (and components
+                                  (not (string-suffix-p separator c))
+                                  separator)))))
+    result))
 
 ;;;; Defined in alloc.c
 
-(compat-defun garbage-collect-maybe (_factor) ;; <OK>
-  "Call ‘garbage-collect’ if enough allocation happened.
-FACTOR determines what \"enough\" means here: If FACTOR is a
-positive number N, it means to run GC if more than 1/Nth of the
-allocations needed to trigger automatic allocation took place.
-Therefore, as N gets higher, this is more likely to perform a GC.
-Returns non-nil if GC happened, and nil otherwise.
-
-NOTE: For releases of Emacs before version 28, this function will do nothing."
-  ;; Do nothing
-  nil)
+(compat-defalias garbage-collect-maybe ignore) ;; <OK>
 
 ;;;; Defined in filelock.c
 
@@ -162,11 +155,6 @@ If COUNT is non-nil and a natural number, the function will
     files))
 
 ;;;; Defined in json.c
-
-(declare-function json-insert nil (object &rest args))
-(declare-function json-serialize nil (object &rest args))
-(declare-function json-parse-string nil (string &rest args))
-(declare-function json-parse-buffer nil (&rest args))
 
 (compat-defun json-serialize (object &rest args) ;; <UNTESTED>
   "Handle top-level JSON values."
@@ -323,7 +311,7 @@ Point in BUFFER will be placed after the inserted text."
     (with-current-buffer buffer
       (insert-buffer-substring current start end))))
 
-(compat-defun replace-string-in-region (string replacement &optional start end) ;; <UNTESTED>
+(compat-defun replace-string-in-region (string replacement &optional start end) ;; <OK>
   "Replace STRING with REPLACEMENT in the region from START to END.
 The number of replaced occurrences are returned, or nil if STRING
 doesn't exist in the region.
@@ -340,17 +328,19 @@ Comparisons and replacements are done with fixed case."
         (error "End after end of buffer"))
     (setq end (point-max)))
   (save-excursion
-    (let ((matches 0)
-          (case-fold-search nil))
-      (goto-char start)
-      (while (search-forward string end t)
-        (delete-region (match-beginning 0) (match-end 0))
-        (insert replacement)
-        (setq matches (1+ matches)))
-      (and (not (zerop matches))
-           matches))))
+    (goto-char start)
+    (save-restriction
+      (narrow-to-region start end)
+      (let ((matches 0)
+            (case-fold-search nil))
+        (while (search-forward string nil t)
+          (delete-region (match-beginning 0) (match-end 0))
+          (insert replacement)
+          (setq matches (1+ matches)))
+        (and (not (zerop matches))
+             matches)))))
 
-(compat-defun replace-regexp-in-region (regexp replacement &optional start end) ;; <UNTESTED>
+(compat-defun replace-regexp-in-region (regexp replacement &optional start end) ;; <OK>
   "Replace REGEXP with REPLACEMENT in the region from START to END.
 The number of replaced occurrences are returned, or nil if REGEXP
 doesn't exist in the region.
@@ -375,14 +365,16 @@ REPLACEMENT can use the following special elements:
         (error "End after end of buffer"))
     (setq end (point-max)))
   (save-excursion
-    (let ((matches 0)
-          (case-fold-search nil))
-      (goto-char start)
-      (while (re-search-forward regexp end t)
-        (replace-match replacement t)
-        (setq matches (1+ matches)))
-      (and (not (zerop matches))
-           matches))))
+    (goto-char start)
+    (save-restriction
+      (narrow-to-region start end)
+      (let ((matches 0)
+            (case-fold-search nil))
+          (while (re-search-forward regexp nil t)
+          (replace-match replacement t)
+          (setq matches (1+ matches)))
+        (and (not (zerop matches))
+             matches)))))
 
 (compat-defun buffer-local-boundp (symbol buffer) ;; <OK>
   "Return non-nil if SYMBOL is bound in BUFFER.
@@ -427,9 +419,7 @@ not a list, return a one-element list containing OBJECT."
       object
     (list object)))
 
-(compat-defun subr-primitive-p (object) ;; <OK>
-  "Return t if OBJECT is a built-in primitive function."
-  (subrp object))
+(compat-defalias subr-primitive-p subrp) ;; <OK>
 
 ;;;; Defined in subr-x.el
 
@@ -591,9 +581,7 @@ Errors if the FILENAME or EXTENSION are empty, or if the given
 FILENAME has the format of a directory.
 
 See also `file-name-sans-extension'."
-  (let ((extn (if (string-prefix-p "." extension)
-                  (substring extension 1)
-                extension)))
+  (let ((extn (string-remove-prefix "." extension)))
     (cond
      ((string= filename "")
       (error "Empty filename"))
@@ -622,7 +610,7 @@ such as `?d' for a directory, or `?l' for a symbolic link and will override
 the leading `-' char."
   (string
    (or filetype
-       (pcase (lsh mode -12)
+       (pcase (ash mode -12)
          ;; POSIX specifies that the file type is included in st_mode
          ;; and provides names for the file types but values only for
          ;; the permissions (e.g., S_IWOTH=2).
@@ -827,7 +815,6 @@ directory or directories specified."
 For computational purposes, years are 365 days long and months
 are 30 days long."
   :feature time-date
-  :version "28"
   ;; Inlining the definitions from compat-27
   (+ (if (consp (nth 0 time))
          ;; Fractional second.

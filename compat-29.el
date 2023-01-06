@@ -24,11 +24,12 @@
 
 (require 'compat-28)
 (eval-when-compile (load "compat-macs.el" nil t t))
-(compat-declare-version "29.0") ;; TODO Update this to 29.1 before release
+;; TODO Update to 29.1 as soon as the Emacs emacs-29 branch version bumped
+(compat-declare-version "29.0")
 
 ;;;; Defined in xdisp.c
 
-(compat-defun get-display-property (position prop &optional object properties) ;; <UNTESTED>
+(compat-defun get-display-property (position prop &optional object properties) ;; <OK>
   "Get the value of the `display' property PROP at POSITION.
 If OBJECT, this should be a buffer or string where the property is
 fetched from.  If omitted, OBJECT defaults to the current buffer.
@@ -233,6 +234,8 @@ binding KEY to DEF is added at the front of KEYMAP."
 
 ;;;; Defined in subr.el
 
+(compat-defalias string-split split-string) ;; <OK>
+
 (compat-defun function-alias-p (func &optional noerror) ;; <UNTESTED>
   "Return nil if FUNC is not a function alias.
 If FUNC is a function alias, return the function alias chain.
@@ -270,7 +273,7 @@ CONDITION is either:
   * `major-mode': the buffer matches if the buffer's major mode
     is eq to the cons-cell's cdr.  Prefer using `derived-mode'
     instead when both can work.
-  * `not': the cdr is interpreted as a negation of a condition.
+  * `not': the cadr is interpreted as a negation of a condition.
   * `and': the cdr is a list of recursive conditions, that all have
     to be met.
   * `or': the cdr is a list of recursive condition, of which at
@@ -299,7 +302,7 @@ CONDITION is either:
                        (buffer-local-value 'major-mode buffer)
                        (cdr condition)))
                      ((eq (car-safe condition) 'not)
-                      (not (funcall match (cdr condition))))
+                      (not (funcall match (cadr condition))))
                      ((eq (car-safe condition) 'or)
                       (funcall match (cdr condition)))
                      ((eq (car-safe condition) 'and)
@@ -418,7 +421,7 @@ be marked unmodified, effectively ignoring those changes."
                         (equal ,hash (buffer-hash)))
                (restore-buffer-modified-p nil))))))))
 
-(compat-defun add-display-text-property (start end prop value ;; <UNTESTED>
+(compat-defun add-display-text-property (start end prop value ;; <OK>
                                                &optional object)
   "Add display property PROP with VALUE to the text from START to END.
 If any text in the region has a non-nil `display' property, those
@@ -436,7 +439,8 @@ this defaults to the current buffer."
                                                    (min end (point-max)))))
       (if (not (setq disp (get-text-property sub-start 'display object)))
           ;; No old properties in this range.
-          (put-text-property sub-start sub-end 'display (list prop value))
+          (put-text-property sub-start sub-end 'display (list prop value)
+                             object)
         ;; We have old properties.
         (let ((vector nil))
           ;; Make disp into a list.
@@ -450,13 +454,13 @@ this defaults to the current buffer."
                  (t
                   disp)))
           ;; Remove any old instances.
-          (let ((old (assoc prop disp)))
-            (when old (setq disp (delete old disp))))
+          (when-let ((old (assoc prop disp)))
+            (setq disp (delete old disp)))
           (setq disp (cons (list prop value) disp))
           (when vector
             (setq disp (vconcat disp)))
           ;; Finally update the range.
-          (put-text-property sub-start sub-end 'display disp)))
+          (put-text-property sub-start sub-end 'display disp object)))
       (setq sub-start sub-end))))
 
 (compat-defmacro while-let (spec &rest body) ;; <UNTESTED>
@@ -480,7 +484,41 @@ The variable list SPEC is the same as in `if-let'."
 
 ;;;; Defined in files.el
 
-(compat-defun file-parent-directory (filename) ;; <UNTESTED>
+(compat-defun file-name-split (filename) ;; <OK>
+  "Return a list of all the components of FILENAME.
+On most systems, this will be true:
+
+  (equal (string-join (file-name-split filename) \"/\") filename)"
+  (let ((components nil))
+    ;; If this is a directory file name, then we have a null file name
+    ;; at the end.
+    (when (directory-name-p filename)
+      (push "" components)
+      (setq filename (directory-file-name filename)))
+    ;; Loop, chopping off components.
+    (while (length> filename 0)
+      (push (file-name-nondirectory filename) components)
+      (let ((dir (file-name-directory filename)))
+        (setq filename (and dir (directory-file-name dir)))
+        ;; If there's nothing left to peel off, we're at the root and
+        ;; we can stop.
+        (when (and dir (equal dir filename))
+          (push (if (equal dir "") ""
+                  ;; On Windows, the first component might be "c:" or
+                  ;; the like.
+                  (substring dir 0 -1))
+                components)
+          (setq filename nil))))
+    components))
+
+(compat-defun file-attribute-file-identifier (attributes) ;; <OK>
+  "The inode and device numbers in ATTRIBUTES returned by `file-attributes'.
+The value is a list of the form (INODENUM DEVICE), where DEVICE could be
+either a single number or a cons cell of two numbers.
+This tuple of numbers uniquely identifies the file."
+  (nthcdr 10 attributes))
+
+(compat-defun file-name-parent-directory (filename) ;; <OK>
   "Return the directory name of the parent directory of FILENAME.
 If FILENAME is at the root of the filesystem, return nil.
 If FILENAME is relative, it is interpreted to be relative
@@ -490,6 +528,8 @@ to `default-directory', and the result will also be relative."
     (cond
      ;; filename is at top-level, therefore no parent
      ((or (null parent)
+          ;; `equal' is enough, we don't need to resolve symlinks here
+          ;; with `file-equal-p', also for performance
           (equal parent expanded-filename))
       nil)
      ;; filename is relative, return relative parent
@@ -498,7 +538,7 @@ to `default-directory', and the result will also be relative."
      (t
       parent))))
 
-(defvar compat--file-has-changed-hash-table (make-hash-table :test #'equal)
+(compat-defvar file-has-changed-p--hash-table (make-hash-table :test #'equal)
   "Internal variable used by `file-has-changed-p'.")
 
 (compat-defun file-has-changed-p (file &optional tag) ;; <UNTESTED>
@@ -514,16 +554,16 @@ the symbol of the calling function, for example."
          (remote-file-name-inhibit-cache t)
          (fileattr (file-attributes file 'integer))
          (attr (and fileattr
-                    (cons (nth 7 fileattr)
-                          (nth 5 fileattr))))
+                    (cons (file-attribute-size fileattr)
+                          (file-attribute-modification-time fileattr))))
          (sym (concat (symbol-name tag) "@" file))
-         (cachedattr (gethash sym compat--file-has-changed-hash-table)))
+         (cachedattr (gethash sym file-has-changed-p--hash-table)))
      (when (not (equal attr cachedattr))
-       (puthash sym attr compat--file-has-changed-hash-table))))
+       (puthash sym attr file-has-changed-p--hash-table))))
 
 ;;;; Defined in keymap.el
 
-(compat-defun key-valid-p (keys) ;; <UNTESTED>
+(compat-defun key-valid-p (keys) ;; <OK>
   "Say whether KEYS is a valid key.
 A key is a string consisting of one or more key strokes.
 The key strokes are separated by single space characters.
@@ -898,7 +938,7 @@ about this.
 NOTE: The compatibility version is not a command."
   (keymap-lookup (current-global-map) keys accept-default))
 
-(compat-defun define-keymap (&rest definitions) ;; <UNTESTED>
+(compat-defun define-keymap (&rest definitions) ;; <OK>
   "Create a new keymap and define KEY/DEFINITION pairs as key bindings.
 The new keymap is returned.
 
@@ -921,7 +961,7 @@ pairs.  Available keywords are:
 :name      If non-nil, this should be a string to use as the menu for
              the keymap in case you use it as a menu with `x-popup-menu'.
 
-:explicit    If non-nil, this should be a symbol to be used as a prefix
+:prefix    If non-nil, this should be a symbol to be used as a prefix
              command (see `define-prefix-command').  If this is the case,
              this symbol is returned instead of the map itself.
 
@@ -960,7 +1000,8 @@ should be a MENU form as accepted by `easy-menu-define'.
                    (keymap keymap)
                    (prefix (define-prefix-command prefix nil name))
                    (full (make-keymap name))
-                   (t (make-sparse-keymap name)))))
+                   (t (make-sparse-keymap name))))
+          seen-keys)
       (when suppress
         (suppress-keymap keymap (eq suppress 'nodigits)))
       (when parent
@@ -974,10 +1015,13 @@ should be a MENU form as accepted by `easy-menu-define'.
           (let ((def (pop definitions)))
             (if (eq key :menu)
                 (easy-menu-define nil keymap "" def)
+              (if (member key seen-keys)
+                  (error "Duplicate definition for key: %S %s" key keymap)
+                (push key seen-keys))
               (keymap-set keymap key def)))))
       keymap)))
 
-(compat-defmacro defvar-keymap (variable-name &rest defs) ;; <UNTESTED>
+(compat-defmacro defvar-keymap (variable-name &rest defs) ;; <OK>
   "Define VARIABLE-NAME as a variable with a keymap definition.
 See `define-keymap' for an explanation of the keywords and KEY/DEFINITION.
 
@@ -985,25 +1029,77 @@ In addition to the keywords accepted by `define-keymap', this
 macro also accepts a `:doc' keyword, which (if present) is used
 as the variable documentation string.
 
-\(fn VARIABLE-NAME &key DOC FULL PARENT SUPPRESS NAME PREFIX KEYMAP &rest [KEY DEFINITION]...)"
+The `:repeat' keyword can also be specified; it controls the
+`repeat-mode' behavior of the bindings in the keymap.  When it is
+non-nil, all commands in the map will have the `repeat-map'
+symbol property.
+
+More control is available over which commands are repeatable; the
+value can also be a property list with properties `:enter' and
+`:exit', for example:
+
+     :repeat (:enter (commands ...) :exit (commands ...))
+
+`:enter' specifies the list of additional commands that only
+enter `repeat-mode'.  When the list is empty, then by default all
+commands in the map enter `repeat-mode'.  This is useful when
+there is a command that has the `repeat-map' symbol property, but
+doesn't exist in this specific map.  `:exit' is a list of
+commands that exit `repeat-mode'.  When the list is empty, no
+commands in the map exit `repeat-mode'.  This is useful when a
+command exists in this specific map, but it doesn't have the
+`repeat-map' symbol property on its symbol.
+
+\(fn VARIABLE-NAME &key DOC FULL PARENT SUPPRESS NAME PREFIX KEYMAP REPEAT &rest [KEY DEFINITION]...)"
   (declare (indent 1))
   (let ((opts nil)
-        doc)
+        doc repeat props)
     (while (and defs
                 (keywordp (car defs))
                 (not (eq (car defs) :menu)))
       (let ((keyword (pop defs)))
         (unless defs
           (error "Uneven number of keywords"))
-        (if (eq keyword :doc)
-            (setq doc (pop defs))
-          (push keyword opts)
-          (push (pop defs) opts))))
+        (cond
+         ((eq keyword :doc) (setq doc (pop defs)))
+         ((eq keyword :repeat) (setq repeat (pop defs)))
+         (t (push keyword opts)
+            (push (pop defs) opts)))))
     (unless (zerop (% (length defs) 2))
       (error "Uneven number of key/definition pairs: %s" defs))
-    `(defvar ,variable-name
-       (define-keymap ,@(nreverse opts) ,@defs)
-       ,@(and doc (list doc)))))
+
+    (let ((defs defs)
+          key seen-keys)
+      (while defs
+        (setq key (pop defs))
+        (pop defs)
+        (when (not (eq key :menu))
+          (if (member key seen-keys)
+              (error "Duplicate definition for key '%s' in keymap '%s'"
+                     key variable-name)
+            (push key seen-keys)))))
+
+    (when repeat
+      (let ((defs defs)
+            def)
+        (dolist (def (plist-get repeat :enter))
+          (push `(put ',def 'repeat-map ',variable-name) props))
+        (while defs
+          (pop defs)
+          (setq def (pop defs))
+          (when (and (memq (car def) '(function quote))
+                     (not (memq (cadr def) (plist-get repeat :exit))))
+            (push `(put ,def 'repeat-map ',variable-name) props)))))
+
+    (let ((defvar-form
+           `(defvar ,variable-name
+              (define-keymap ,@(nreverse opts) ,@defs)
+              ,@(and doc (list doc)))))
+      (if props
+          `(progn
+             ,defvar-form
+             ,@(nreverse props))
+        defvar-form))))
 
 (provide 'compat-29)
 ;;; compat-29.el ends here

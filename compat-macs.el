@@ -53,11 +53,11 @@ be installed).  ATTR is a plist used to modify the generated
 code.  The following attributes are handled, all others are
 ignored:
 
-- :min-version :: Prevent the compatibility definition from begin
-  installed in versions older than indicated (string).
+- :min-version :: Do not install the compatibility definition
+  if Emacs version older than indicated.
 
-- :max-version :: Prevent the compatibility definition from begin
-  installed in versions newer than indicated (string).
+- :max-version :: Do not install the compatibility definition
+  if Emacs version newer or equal than indicated.
 
 - :feature :: The library the code is supposed to be loaded
   with (via `eval-after-load').
@@ -68,9 +68,6 @@ ignored:
   For prefixed functions, this can be interpreted as a test to
   `defalias' an existing definition or not.
 
-- :version :: Manual specification of the version the compatee
-  code was defined in (string).
-
 - :realname :: Manual specification of a \"realname\" to use for
   the compatibility definition (symbol).
 
@@ -80,9 +77,9 @@ ignored:
          (max-version (plist-get attr :max-version))
          (feature (plist-get attr :feature))
          (cond (plist-get attr :cond))
-         (version (or (plist-get attr :version)
-                      compat--current-version))
          (check))
+    (unless compat--current-version
+      (error "No compat version declared"))
     (when (and (plist-get attr :realname)
                (string= name (plist-get attr :realname)))
       (error "%S: Name is equal to realname" name))
@@ -97,11 +94,11 @@ ignored:
            ((or (and min-version
                      (version< emacs-version min-version))
                 (and max-version
-                     (version< max-version emacs-version)))
+                     (version<= max-version emacs-version)))
             nil)
            ((plist-get attr :explicit)
             t)
-           ((and version (version<= version emacs-version) (not cond))
+           ((and (version<= compat--current-version emacs-version) (not cond))
             nil)
            ((and (if cond (eval cond t) t)
                  (funcall check-fn)))))
@@ -109,21 +106,24 @@ ignored:
      ((and (plist-get attr :explicit)
            (let ((actual-name (intern (substring (symbol-name name)
                                                  (length "compat-")))))
-             (when (and (version<= version emacs-version)
+             ;; NOTE: For prefixed/explicit functions check the Emacs version,
+             ;; since the fboundp check cannot be used! We want to redefine
+             ;; existing functions.
+             (when (and (version<= compat--current-version emacs-version)
                         (fboundp actual-name)
                         check)
                (compat--with-feature feature
-                 (funcall install-fn actual-name version))))))
+                 (funcall install-fn actual-name))))))
      ((let ((realname (plist-get attr :realname)))
         (when realname
           `(progn
-             ,(funcall def-fn realname version)
+             ,(funcall def-fn realname)
              ,(when check
                 (compat--with-feature feature
-                  (funcall install-fn realname version)))))))
+                  (funcall install-fn realname)))))))
      (check
       (compat--with-feature feature
-        (funcall def-fn name version))))))
+        (funcall def-fn name))))))
 
 (defun compat--define-function (type name arglist docstring rest)
   "Generate compatibility code for a function NAME.
@@ -151,7 +151,7 @@ attributes (see `compat--generate')."
       (setq name (intern (format "compat-%s" name))))
     (compat--generate
      name
-     (lambda (realname version)
+     (lambda (realname)
        `(progn
           (,(cond
              ((eq type 'function) 'defun)
@@ -164,20 +164,13 @@ attributes (see `compat--generate')."
            ;; Prepend compatibility notice to the actual
            ;; documentation string.
            ,(with-temp-buffer
-              (insert docstring)
-              (newline 2)
               (insert
-               "[Compatibility "
-               (if version
-                   (format
-                    "%s for `%S', defined in Emacs %s.  \
+               (format
+                "[Compatibility %s for `%S', defined in Emacs %s.  \
 If this is not documented on yourself system, you can check \
-`(compat) Emacs %s' for more details."
-                    type oldname version version)
-                 (format
-                  "code %s for `%S'"
-                  type oldname))
-               "]")
+`(compat) Emacs %s' for more details.]\n\n"
+                type oldname compat--current-version compat--current-version
+                docstring))
               (let ((fill-column 80))
                 (fill-region (point-min) (point-max)))
               (buffer-string))
@@ -190,7 +183,7 @@ If this is not documented on yourself system, you can check \
                         "Use `compat-call' or `compat-function' instead"
                         "29.1.0.0"))
                    `((defalias ',realname #',(intern (format "compat--%s" oldname))))))))
-     (lambda (realname _version)
+     (lambda (realname)
        `(progn
           ;; Functions and macros are installed by aliasing the name of the
           ;; compatible function to the name of the compatibility function.
@@ -213,11 +206,7 @@ If this is not documented on yourself system, you can check \
 The function must be documented in DOCSTRING.  REST may begin
 with a plist, that is interpreted by the macro but not passed on
 to the actual function.  See `compat--generate' for a
-listing of attributes.
-
-The definition will only be installed, if the version this
-function was defined in, as indicated by the `:version'
-attribute, is greater than the current Emacs version."
+listing of attributes."
   (declare (debug (&define name (&rest symbolp)
                            stringp
                            [&rest keywordp sexp]
@@ -230,13 +219,21 @@ attribute, is greater than the current Emacs version."
 The macro must be documented in DOCSTRING.  REST may begin
 with a plist, that is interpreted by this macro but not passed on
 to the actual macro.  See `compat--generate' for a
-listing of attributes.
-
-The definition will only be installed, if the version this
-function was defined in, as indicated by the `:version'
-attribute, is greater than the current Emacs version."
+listing of attributes."
   (declare (debug compat-defun) (doc-string 3) (indent 2)) ;; <UNTESTED>
   (compat--define-function 'macro name arglist docstring rest))
+
+(defmacro compat-defalias (name def)
+  "Declare compatibility alias NAME with DEF."
+  (compat--generate
+           name
+           (lambda (realname)
+             `(defalias ',realname ',def))
+           (lambda (realname)
+             `(defalias ',name ',realname))
+           (lambda ()
+             `(not (fboundp ',name)))
+           nil))
 
 (defmacro compat-defvar (name initval docstring &rest attr)
   "Declare compatibility variable NAME with initial value INITVAL.
@@ -254,27 +251,28 @@ non-nil value."
     (error ":explicit cannot be specified for compatibility variables"))
   (compat--generate
            name
-           (lambda (realname version)
+           (lambda (realname)
              (let ((localp (plist-get attr :local)))
                `(progn
                   (,(if (plist-get attr :constant) 'defconst 'defvar)
                    ,realname ,initval
                    ;; Prepend compatibility notice to the actual
                    ;; documentation string.
-                   ,(if version
-                        (format
-                         "[Compatibility variable for `%S', defined in Emacs %s]\n\n%s"
-                         name version docstring)
-                      (format
-                       "[Compatibility variable for `%S']\n\n%s"
-                       name docstring)))
+                   ,(with-temp-buffer
+                      (insert
+                       (format
+                        "[Compatibility variable for `%S', defined in Emacs %s]\n\n%s"
+                        name compat--current-version docstring))
+                      (let ((fill-column 80))
+                        (fill-region (point-min) (point-max)))
+                      (buffer-string)))
                   ;; Make variable as local if necessary
                   ,(cond
                     ((eq localp 'permanent)
                      `(put ',realname 'permanent-local t))
                     (localp
                      `(make-variable-buffer-local ',realname))))))
-           (lambda (realname _version)
+           (lambda (realname)
              `(defvaralias ',name ',realname))
            (lambda ()
              `(not (boundp ',name)))

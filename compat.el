@@ -4,7 +4,7 @@
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>, Daniel Mendler <mail@daniel-mendler.de>
 ;; Maintainer: Daniel Mendler <mail@daniel-mendler.de>, Compat Development <~pkal/compat-devel@lists.sr.ht>
-;; Version: 29.1.0.0-git
+;; Version: 29.1.0.1
 ;; URL: https://github.com/emacs-compat/compat
 ;; Package-Requires: ((emacs "24.4"))
 ;; Keywords: lisp
@@ -26,10 +26,12 @@
 
 ;; To allow for the usage of Emacs functions and macros that are
 ;; defined in newer versions of Emacs, compat.el provides definitions
-;; that are installed ONLY if necessary.  These reimplementations of
-;; functions and macros are at least subsets of the actual
-;; implementations.  Be sure to read the documentation string to make
-;; sure.
+;; that are installed ONLY if necessary.  If Compat is installed on a
+;; recent version of Emacs, all of the definitions are disabled at
+;; compile time, such that no negative performance impact is incurred.
+;; These reimplementations of functions and macros are at least
+;; subsets of the actual implementations.  Be sure to read the
+;; documentation string to make sure.
 ;;
 ;; Not every function provided in newer versions of Emacs is provided
 ;; here.  Some depend on new features from the core, others cannot be
