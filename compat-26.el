@@ -22,7 +22,6 @@
 
 ;;; Code:
 
-(require 'compat-25)
 (eval-when-compile (load "compat-macs.el" nil t t))
 (compat-declare-version "26.1")
 
@@ -35,7 +34,6 @@ Equality is defined by the function TESTFN, defaulting to
 element and KEY.  With no optional argument, the function behaves
 just like `assoc'."
   :explicit t
-  :realname compat--internal-assoc
   (if testfn
       (catch 'found
         (dolist (ent alist)
@@ -69,43 +67,55 @@ from the absolute start of the buffer, disregarding the narrowing."
   "Handle TESTFN manually."
   :explicit t
   (if testfn
-      (compat--alist-get-full-elisp key alist default remove testfn)
+      (let (entry)
+        (cond
+         ((eq testfn 'eq)
+          (setq entry (assq key alist)))
+         ((eq testfn 'equal)
+          (setq entry (assoc key alist)))
+         ((catch 'found
+            (dolist (ent alist)
+              (when (and (consp ent) (funcall testfn (car ent) key))
+                (throw 'found (setq entry ent))))
+            default)))
+        (if entry (cdr entry) default))
     (alist-get key alist default remove)))
 
-(gv-define-expander compat--alist-get
-  (lambda (do key alist &optional default remove testfn)
-    (macroexp-let2 macroexp-copyable-p k key
-      (gv-letplace (getter setter) alist
-        (macroexp-let2 nil p `(compat--internal-assoc ,k ,getter ,testfn)
-          (funcall do (if (null default) `(cdr ,p)
-                        `(if ,p (cdr ,p) ,default))
-                   (lambda (v)
-                     (macroexp-let2 nil v v
-                       (let ((set-exp
-                              `(if ,p (setcdr ,p ,v)
-                                 ,(funcall setter
-                                           `(cons (setq ,p (cons ,k ,v))
-                                                  ,getter)))))
-                         `(progn
-                            ,(cond
-                              ((null remove) set-exp)
-                              ((or (eql v default)
-                                   (and (eq (car-safe v) 'quote)
-                                        (eq (car-safe default) 'quote)
-                                        (eql (cadr v) (cadr default))))
-                               `(if ,p ,(funcall setter `(delq ,p ,getter))))
-                              (t
-                               `(cond
-                                 ((not (eql ,default ,v)) ,set-exp)
-                                 (,p ,(funcall setter
-                                               `(delq ,p ,getter))))))
-                            ,v))))))))))
+;; NOTE: Define gv expander only if `compat--alist-get' is defined.
+(when (eval-when-compile (version< emacs-version "26.1"))
+  (gv-define-expander compat--alist-get
+    (lambda (do key alist &optional default remove testfn)
+      (macroexp-let2 macroexp-copyable-p k key
+        (gv-letplace (getter setter) alist
+          (macroexp-let2 nil p `(compat--assoc ,k ,getter ,testfn)
+            (funcall do (if (null default) `(cdr ,p)
+                          `(if ,p (cdr ,p) ,default))
+                     (lambda (v)
+                       (macroexp-let2 nil v v
+                         (let ((set-exp
+                                `(if ,p (setcdr ,p ,v)
+                                   ,(funcall setter
+                                             `(cons (setq ,p (cons ,k ,v))
+                                                    ,getter)))))
+                           `(progn
+                              ,(cond
+                                ((null remove) set-exp)
+                                ((or (eql v default)
+                                     (and (eq (car-safe v) 'quote)
+                                          (eq (car-safe default) 'quote)
+                                          (eql (cadr v) (cadr default))))
+                                 `(if ,p ,(funcall setter `(delq ,p ,getter))))
+                                (t
+                                 `(cond
+                                   ((not (eql ,default ,v)) ,set-exp)
+                                   (,p ,(funcall setter
+                                                 `(delq ,p ,getter))))))
+                              ,v)))))))))))
 
 (compat-defun string-trim-left (string &optional regexp) ;; <OK>
   "Trim STRING of leading string matching REGEXP.
 
 REGEXP defaults to \"[ \\t\\n\\r]+\"."
-  :realname compat--internal-string-trim-left
   :explicit t
   (if (string-match (concat "\\`\\(?:" (or regexp "[ \t\n\r]+") "\\)") string)
       (substring string (match-end 0))
@@ -115,7 +125,6 @@ REGEXP defaults to \"[ \\t\\n\\r]+\"."
   "Trim STRING of trailing string matching REGEXP.
 
 REGEXP defaults to  \"[ \\t\\n\\r]+\"."
-  :realname compat--internal-string-trim-right
   :explicit t
   (let ((i (string-match-p
             (concat "\\(?:" (or regexp "[ \t\n\r]+") "\\)\\'")
@@ -127,11 +136,8 @@ REGEXP defaults to  \"[ \\t\\n\\r]+\"."
 
 TRIM-LEFT and TRIM-RIGHT default to \"[ \\t\\n\\r]+\"."
   :explicit t
-  ;; `string-trim-left' and `string-trim-right' were moved from subr-x
-  ;; to subr in Emacs 27, so to avoid loading subr-x we use the
-  ;; compatibility function here:
-  (compat--internal-string-trim-left
-   (compat--internal-string-trim-right
+  (compat--string-trim-left
+   (compat--string-trim-right
     string
     trim-right)
    trim-left))
@@ -256,7 +262,7 @@ TRIM-LEFT and TRIM-RIGHT default to \"[ \\t\\n\\r]+\"."
   (declare (pure t))
   (cdr (cdr (cdr (cdr x)))))
 
-(compat-defvar gensym-counter 0
+(compat-defvar gensym-counter 0 ;; <OK>
   "Number used to construct the name of the next symbol created by `gensym'.")
 
 (compat-defun gensym (&optional prefix) ;; <OK>
@@ -324,7 +330,7 @@ are non-nil, then the result is non-nil."
 
 ;;;; Defined in files.el
 
-(compat-defvar mounted-file-systems
+(compat-defvar mounted-file-systems ;; <UNTESTED>
     (eval-when-compile
       (if (memq system-type '(windows-nt cygwin))
           "^//[^/]+/"
@@ -492,7 +498,9 @@ If VALUE is nil, PROPERTY is removed from IMAGE."
   ;; :feature image
   (plist-get (cdr image) property))
 
-(unless (get 'image-property 'gv-expander)
+(unless (eval-when-compile
+          (require 'image)
+          (get 'image-property 'gv-expander))
   (gv-define-setter image-property (image property value)
     (let ((image* (make-symbol "image"))
           (property* (make-symbol "property"))

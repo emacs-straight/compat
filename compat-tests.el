@@ -45,6 +45,13 @@
 (defmacro should-equal (a b)
   `(should (equal ,a ,b)))
 
+(ert-deftest compat-loaded-features ()
+  (let ((version 0))
+    (while (< version 30)
+      (should-equal (> version emacs-major-version)
+                    (featurep (intern (format "compat-%s" version))))
+      (setq version (1+ version)))))
+
 (ert-deftest compat-function ()
   (let ((sym (compat-function plist-put)) list)
     (should sym)
@@ -104,24 +111,24 @@
     (should-equal 2 (compat-call line-number-at-pos (point-min) 'abs))
     (should-equal 3 (compat-call line-number-at-pos (1+ (point-min)) 'abs))))
 
-(defvar compat-test-map-1
+(defvar compat-tests--map-1
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-x C-f") #'find-file)
     (define-key map (kbd "SPC") #'minibuffer-complete-word)
     (define-key map (kbd "C-c") mode-specific-map)
     map))
-(defvar-keymap compat-test-map-2
+(defvar-keymap compat-tests--map-2
   "C-x C-f" #'find-file
   "SPC" #'minibuffer-complete-word
   "C-c" mode-specific-map)
-(defvar compat-test-map-3
+(defvar compat-tests--map-3
   (define-keymap
     "C-x C-f" #'find-file
     "SPC" #'minibuffer-complete-word
     "C-c" mode-specific-map))
 (ert-deftest defvar-keymap ()
-  (should-equal compat-test-map-1 compat-test-map-2)
-  (should-equal compat-test-map-1 compat-test-map-3))
+  (should-equal compat-tests--map-1 compat-tests--map-2)
+  (should-equal compat-tests--map-1 compat-tests--map-3))
 
 (ert-deftest key-valid-p ()
   (should-not (key-valid-p ""))
@@ -241,10 +248,10 @@
   (should-not (key-valid-p "M-xx"))
   (should-not (key-valid-p "M-x<TAB>")))
 
-(defun compat-function-put-test ())
+(defun compat-tests--function-put ())
 (ert-deftest function-put ()
-  (function-put #'compat-function-put-test 'compat-test 42)
-  (should-equal 42 (function-get #'compat-function-put-test 'compat-test)))
+  (function-put #'compat-tests--function-put 'compat-test 42)
+  (should-equal 42 (function-get #'compat-tests--function-put 'compat-test)))
 
 (ert-deftest ignore-error ()
   (should-equal (ignore-error (end-of-file)
@@ -299,25 +306,25 @@
 (ert-deftest format-message ()
   (should-equal (format-message "a=%s b=%s" 1 2) "a=1 b=2"))
 
-(defvar test-boundp)
-(defvar test-global-boundp)
+(defvar compat-tests--boundp)
+(defvar compat-tests--global-boundp)
 (ert-deftest buffer-local-boundp ()
   (let ((buf (generate-new-buffer "boundp")))
     (with-current-buffer buf
-      (setq-local test-boundp t))
-    (setq test-global-boundp t)
-    (should (buffer-local-boundp 'test-boundp buf))
+      (setq-local compat-tests--boundp t))
+    (setq compat-tests--global-boundp t)
+    (should (buffer-local-boundp 'compat-tests--boundp buf))
     (should-not (buffer-local-boundp 'test-not-boundp buf))
-    (should (buffer-local-boundp 'test-global-boundp buf))))
+    (should (buffer-local-boundp 'compat-tests--global-boundp buf))))
 
-(defvar compat-local-a nil)
-(defvar compat-local-b nil)
-(defvar compat-local-c nil)
+(defvar compat-tests--local-a nil)
+(defvar compat-tests--local-b nil)
+(defvar compat-tests--local-c nil)
 (ert-deftest setq-local ()
-  (compat-call setq-local compat-local-a 1 compat-local-b 2 compat-local-c 3)
-  (should-equal compat-local-a 1)
-  (should-equal compat-local-b 2)
-  (should-equal compat-local-c 3))
+  (compat-call setq-local compat-tests--local-a 1 compat-tests--local-b 2 compat-tests--local-c 3)
+  (should-equal compat-tests--local-a 1)
+  (should-equal compat-tests--local-b 2)
+  (should-equal compat-tests--local-c 3))
 
 (ert-deftest gensym ()
   (should (symbolp (gensym "compat")))
@@ -1002,9 +1009,8 @@
     ;; in the following commit:
     ;; https://git.savannah.gnu.org/cgit/emacs.git/commit/?id=c44190c
     ;;
-    ;; Therefore, we must make sure, that the test
+    ;; TODO Therefore, we must make sure, that the test
     ;; doesn't fail because of this bug:
-    ;; TODO
     ;; (should (= (string-distance "" "") 0))
     )
   (should-equal 0 (string-distance "a" "a"))
@@ -1017,7 +1023,6 @@
   (should-equal 1 (string-distance "a" "あ")))
 
 (ert-deftest string-width ()
-  (should-equal 0 (compat-string-width ""))                         ;; Obsolete
   (should-equal 0 (compat-call string-width ""))
   (should-equal 3 (compat-call string-width "abc"))                 ;; no argument
   (should-equal 5 (compat-call string-width "abcあ"))
@@ -1033,7 +1038,6 @@
   (should-equal 0 (compat-call string-width "a	" 1 1)))
 
 (ert-deftest string-trim-left ()
-  (should-equal "a" (compat-string-trim-left " a")) ;; Obsolete
   (should-equal "a" (compat-call string-trim-left "---a" "-+")) ;; Additional regexp
   (should-equal "" (compat-call string-trim-left ""))                          ;empty string
   (should-equal "a" (compat-call string-trim-left "a"))                        ;"full" string
@@ -1056,7 +1060,6 @@
   (should-equal "a  \n" (compat-call string-trim-left "\n  \ta  \n")))
 
 (ert-deftest string-trim-right ()
-  (should-equal "a" (compat-string-trim-right "a    ")) ;; Obsolete
   (should-equal "a" (compat-call string-trim-right "a---" "-+")) ;; Additional regexp
   (should-equal "" (compat-call string-trim-right ""))                          ;empty string
   (should-equal "a" (compat-call string-trim-right "a"))                        ;"full" string
@@ -1079,7 +1082,6 @@
   (should-equal "\n  \ta" (compat-call string-trim-right "\n  \ta  \n")))
 
 (ert-deftest string-trim ()
-  (should-equal "aaa" (compat-string-trim " aaa  ")) ;; Obsolete
   (should-equal "aaa" (compat-call string-trim "--aaa__" "-+" "_+")) ;; Additional regexp
   (should-equal "" (compat-call string-trim ""))                          ;empty string
   (should-equal "a" (compat-call string-trim "a"))                        ;"full" string
@@ -1100,6 +1102,13 @@
   (should-equal "aaa" (compat-call string-trim " aaa  "))
   (should-equal "t\ta" (compat-call string-trim "t\ta\t\n"))
   (should-equal "a" (compat-call string-trim "\n  \ta  \n")))
+
+(defmacro compat-tests--string-to-multibyte (str)
+  ;; On Emacs 26 `string-to-multibyte' was declared obsolete.
+  ;; This obsoletion was reverted on Emacs 27.
+  (if (= emacs-major-version 26)
+      `(with-no-warnings (string-to-multibyte ,str))
+    `(string-to-multibyte ,str)))
 
 (ert-deftest string-search ()
   ;; Find needle at the beginning of a haystack:
@@ -1169,8 +1178,8 @@
   (should-not (string-search "\270" "aøb"))
   (should-not (string-search "ø" "\303\270"))
   (should-not (string-search "ø" (make-string 32 ?a)))
-  (should-not (string-search "ø" (string-to-multibyte (make-string 32 ?a))))
-  (should-equal 14 (string-search "o" (string-to-multibyte
+  (should-not (string-search "ø" (compat-tests--string-to-multibyte (make-string 32 ?a))))
+  (should-equal 14 (string-search "o" (compat-tests--string-to-multibyte
                                         (apply #'string (number-sequence ?a ?z)))))
   (should-equal 2 (string-search "a\U00010f98z" "a\U00010f98a\U00010f98z"))
   (should-error (string-search "a" "abc" -1) :type '(args-out-of-range -1))
@@ -1189,30 +1198,30 @@
   (should-not (string-search "ø" "foo\303\270"))
   (should-not (string-search "\303\270" "ø"))
   (should-not (string-search "\370" "ø"))
-  (should-not (string-search (string-to-multibyte "\370") "ø"))
+  (should-not (string-search (compat-tests--string-to-multibyte "\370") "ø"))
   (should-not (string-search "ø" "\370"))
-  (should-not (string-search "ø" (string-to-multibyte "\370")))
+  (should-not (string-search "ø" (compat-tests--string-to-multibyte "\370")))
   (should-not (string-search "\303\270" "\370"))
-  (should-not (string-search (string-to-multibyte "\303\270") "\370"))
-  (should-not (string-search "\303\270" (string-to-multibyte "\370")))
+  (should-not (string-search (compat-tests--string-to-multibyte "\303\270") "\370"))
+  (should-not (string-search "\303\270" (compat-tests--string-to-multibyte "\370")))
   (should-not
-                  (string-search (string-to-multibyte "\303\270")
-                                 (string-to-multibyte "\370")))
+                  (string-search (compat-tests--string-to-multibyte "\303\270")
+                                 (compat-tests--string-to-multibyte "\370")))
   (should-not (string-search "\370" "\303\270"))
-  (should-not (string-search (string-to-multibyte "\370") "\303\270"))
-  (should-not (string-search "\370" (string-to-multibyte "\303\270")))
+  (should-not (string-search (compat-tests--string-to-multibyte "\370") "\303\270"))
+  (should-not (string-search "\370" (compat-tests--string-to-multibyte "\303\270")))
   (should-not
-                 (string-search (string-to-multibyte "\370")
-                                (string-to-multibyte "\303\270")))
+                 (string-search (compat-tests--string-to-multibyte "\370")
+                                (compat-tests--string-to-multibyte "\303\270")))
   (should-equal 3 (string-search "\303\270" "foo\303\270"))
   (when (version<= "27" emacs-version)
     ;; FIXME The commit a1f76adfb03c23bb4242928e8efe6193c301f0c1 in
     ;; emacs.git fixes the behaviour of regular expressions matching
     ;; raw bytes.  The compatibility functions should updated to
     ;; backport this behaviour.
-    (should-equal 2 (string-search (string-to-multibyte "\377") "ab\377c"))
+    (should-equal 2 (string-search (compat-tests--string-to-multibyte "\377") "ab\377c"))
     (should-equal 2
-                    (string-search (string-to-multibyte "o\303\270")
+                    (string-search (compat-tests--string-to-multibyte "o\303\270")
                                    "foo\303\270"))))
 
 (ert-deftest string-replace ()
@@ -1237,8 +1246,8 @@
     ;; expressions matching raw bytes.  The compatibility
     ;; functions should updated to backport this
     ;; behaviour.
-    (should-equal "axb" (string-replace (string-to-multibyte "\377") "x" "a\377b"))
-    (should-equal "axø" (string-replace (string-to-multibyte "\377") "x" "a\377ø")))
+    (should-equal "axb" (string-replace (compat-tests--string-to-multibyte "\377") "x" "a\377b"))
+    (should-equal "axø" (string-replace (compat-tests--string-to-multibyte "\377") "x" "a\377ø")))
   (should-equal "ANAnas" (string-replace "ana" "ANA" "ananas"))
   (should-equal "" (string-replace "a" "" ""))
   (should-equal "" (string-replace "a" "" "aaaaa"))
@@ -1416,15 +1425,6 @@
     (should-equal alist-1 '((1 . "eins") (3 . "three")))
     (setf (compat-call alist-get "one" alist-2 nil nil #'string=) "eins")
     (should-equal (compat-call alist-get "one" alist-2 nil nil #'string=)
-                   "eins")
-
-    ;; Obsolete compat-alist-get
-    (setf (compat-alist-get 1 alist-1) "eins")
-    (should-equal (compat-alist-get 1 alist-1) "eins")
-    (setf (compat-alist-get 2 alist-1 nil 'remove) nil)
-    (should-equal alist-1 '((1 . "eins") (3 . "three")))
-    (setf (compat-alist-get "one" alist-2 nil nil #'string=) "eins")
-    (should-equal (compat-alist-get "one" alist-2 nil nil #'string=)
                    "eins")))
 
 (ert-deftest json-serialize ()

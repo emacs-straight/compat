@@ -22,7 +22,6 @@
 
 ;;; Code:
 
-(require 'compat-28)
 (eval-when-compile (load "compat-macs.el" nil t t))
 ;; TODO Update to 29.1 as soon as the Emacs emacs-29 branch version bumped
 (compat-declare-version "29.0")
@@ -211,7 +210,6 @@ the parent, and with a nil DEF, the lookups will return nil.
 If KEYMAP is a sparse keymap with a binding for KEY, the existing
 binding is altered.  If there is no binding for KEY, the new pair
 binding KEY to DEF is added at the front of KEYMAP."
-  :realname compat--define-key-with-remove
   :explicit t
   (if remove
       (let ((prev (lookup-key keymap key))
@@ -538,7 +536,8 @@ to `default-directory', and the result will also be relative."
      (t
       parent))))
 
-(compat-defvar file-has-changed-p--hash-table (make-hash-table :test #'equal)
+(compat-defvar file-has-changed-p--hash-table ;; <UNTESTED>
+               (make-hash-table :test #'equal)
   "Internal variable used by `file-has-changed-p'.")
 
 (compat-defun file-has-changed-p (file &optional tag) ;; <UNTESTED>
@@ -759,7 +758,7 @@ parent keymap.  Removing the binding will allow the key in the
 parent keymap to be used."
   (unless (key-valid-p key)
     (error "%S is not a valid key definition; see `key-valid-p'" key))
-  (compat--define-key-with-remove keymap (key-parse key) nil remove))
+  (compat--define-key keymap (key-parse key) nil remove))
 
 (compat-defun keymap-global-set (key command) ;; <UNTESTED>
   "Give KEY a global binding as COMMAND.
