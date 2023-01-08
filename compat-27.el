@@ -88,7 +88,7 @@ Letter-case is significant, but text properties are ignored."
 
 ;;;; Defined in window.c
 
-(compat-defun recenter (&optional arg redisplay) ;; <UNTESTED>
+(compat-defun recenter (&optional arg redisplay) ;; <OK>
   "Handle optional argument REDISPLAY."
   :explicit t
   (recenter arg)
@@ -268,10 +268,7 @@ return nil."
   :constant t)
 
 (compat-defun assoc-delete-all (key alist &optional test) ;; <OK>
-  "Delete from ALIST all elements whose car is KEY.
-Compare keys with TEST.  Defaults to `equal'.
-Return the modified alist.
-Elements of ALIST that are not conses are ignored."
+  "Handle optional argument TEST."
   :explicit t
   (unless test (setq test #'equal))
   (while (and (consp (car alist))
@@ -336,10 +333,35 @@ the number of seconds east of Greenwich."
 
 ;; TODO define gv-setters for decoded-time-*
 
+;;;; Defined in image.el
+
+(compat-defun image--set-property (image property value) ;; <OK>
+  "Set PROPERTY in IMAGE to VALUE.
+Internal use only."
+  :explicit t
+  :feature image
+  (if (null value)
+      (while (cdr image)
+        (if (eq (cadr image) property)
+            (setcdr image (cdddr image))
+          (setq image (cddr image))))
+    (setcdr image (plist-put (cdr image) property value)))
+  value)
+
+(if (eval-when-compile (version< emacs-version "26.1"))
+    (with-eval-after-load 'image
+      (gv-define-simple-setter image-property image--set-property))
+  ;; HACK: image--set-property was broken with an off-by-one error on Emacs 26.
+  ;; The bug was fixed in a4ad7bed187493c1c230f223b52c71f5c34f7c89. Therefore we
+  ;; override the gv expander until Emacs 27.1.
+  (when (eval-when-compile (version< emacs-version "27.1"))
+    (with-eval-after-load 'image
+      (gv-define-simple-setter image-property compat--image--set-property))))
+
 ;;;; Defined in files.el
 
 (compat-defun file-size-human-readable (file-size &optional flavor space unit) ;; <OK>
-  "Handle the optional third and forth argument:
+  "Handle the optional arguments SPACE and UNIT.
 
 Optional third argument SPACE is a string put between the number and unit.
 It defaults to the empty string.  We recommend a single space or
@@ -434,7 +456,7 @@ Optional arg PARENTS, if non-nil then creates parent dirs as needed."
 ;;;; Defined in regexp-opt.el
 
 (compat-defun regexp-opt (strings &optional paren) ;; <OK>
-  "Handle an empty list of strings."
+  "Handle an empty list of STRINGS."
   :explicit t
   (if (null strings)
       (let ((re "\\`a\\`"))
@@ -493,7 +515,7 @@ The return value is a string (or nil in case we can’t find it)."
 
 (compat-defun dired-get-marked-files ;; <UNTESTED>
     (&optional localp arg filter distinguish-one-marked error)
-  "Return the marked files’ names as list of strings."
+  "Handle optional argument ERROR."
   :feature dired
   :explicit t
   (let ((result (dired-get-marked-files localp arg filter distinguish-one-marked)))

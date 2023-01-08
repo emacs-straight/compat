@@ -28,11 +28,7 @@
 ;;;; Defined in fns.c
 
 (compat-defun assoc (key alist &optional testfn) ;; <OK>
-  "Handle the optional argument TESTFN.
-Equality is defined by the function TESTFN, defaulting to
-`equal'.  TESTFN is called with 2 arguments: a car of an alist
-element and KEY.  With no optional argument, the function behaves
-just like `assoc'."
+  "Handle the optional TESTFN."
   :explicit t
   (if testfn
       (catch 'found
@@ -48,12 +44,7 @@ SEQUENCE may be a list, a vector, a boolean vector, or a string."
   (apply #'nconc (mapcar func sequence)))
 
 (compat-defun line-number-at-pos (&optional position absolute) ;; <OK>
-  "Handle optional argument ABSOLUTE:
-
-If the buffer is narrowed, the return value by default counts the lines
-from the beginning of the accessible portion of the buffer.  But if the
-second optional argument ABSOLUTE is non-nil, the value counts the lines
-from the absolute start of the buffer, disregarding the narrowing."
+  "Handle optional argument ABSOLUTE."
   :explicit t
   (if absolute
       (save-restriction
@@ -64,7 +55,7 @@ from the absolute start of the buffer, disregarding the narrowing."
 ;;;; Defined in subr.el
 
 (compat-defun alist-get (key alist &optional default remove testfn) ;; <OK>
-  "Handle TESTFN manually."
+  "Handle optional argument TESTFN."
   :explicit t
   (if testfn
       (let (entry)
@@ -113,18 +104,14 @@ from the absolute start of the buffer, disregarding the narrowing."
                               ,v)))))))))))
 
 (compat-defun string-trim-left (string &optional regexp) ;; <OK>
-  "Trim STRING of leading string matching REGEXP.
-
-REGEXP defaults to \"[ \\t\\n\\r]+\"."
+  "Handle optional argument REGEXP."
   :explicit t
   (if (string-match (concat "\\`\\(?:" (or regexp "[ \t\n\r]+") "\\)") string)
       (substring string (match-end 0))
     string))
 
 (compat-defun string-trim-right (string &optional regexp) ;; <OK>
-  "Trim STRING of trailing string matching REGEXP.
-
-REGEXP defaults to  \"[ \\t\\n\\r]+\"."
+  "Handle optional argument REGEXP."
   :explicit t
   (let ((i (string-match-p
             (concat "\\(?:" (or regexp "[ \t\n\r]+") "\\)\\'")
@@ -132,9 +119,7 @@ REGEXP defaults to  \"[ \\t\\n\\r]+\"."
     (if i (substring string 0 i) string)))
 
 (compat-defun string-trim (string &optional trim-left trim-right) ;; <OK>
-  "Trim STRING of leading with and trailing matching TRIM-LEFT and TRIM-RIGHT.
-
-TRIM-LEFT and TRIM-RIGHT default to \"[ \\t\\n\\r]+\"."
+  "Handle optional arguments TRIM-LEFT and TRIM-RIGHT."
   :explicit t
   (compat--string-trim-left
    (compat--string-trim-right
@@ -330,7 +315,7 @@ are non-nil, then the result is non-nil."
 
 ;;;; Defined in files.el
 
-(compat-defvar mounted-file-systems ;; <UNTESTED>
+(compat-defvar mounted-file-systems ;; <OK>
     (eval-when-compile
       (if (memq system-type '(windows-nt cygwin))
           "^//[^/]+/"
@@ -348,17 +333,13 @@ The returned file name can be used directly as argument of
   (or (file-remote-p file 'localname) file))
 
 (compat-defun file-name-quoted-p (name &optional top) ;; <OK>
-  "Whether NAME is quoted with prefix \"/:\".
-If NAME is a remote file name and TOP is nil, check the local part of NAME."
+  "Handle optional argument TOP."
   :explicit t
   (let ((file-name-handler-alist (unless top file-name-handler-alist)))
     (string-prefix-p "/:" (file-local-name name))))
 
 (compat-defun file-name-quote (name &optional top) ;; <OK>
-  "Add the quotation prefix \"/:\" to file NAME.
-If NAME is a remote file name and TOP is nil, the local part of
-NAME is quoted.  If NAME is already a quoted file name, NAME is
-returned unchanged."
+  "Handle optional argument TOP."
   :explicit t
   (let ((file-name-handler-alist (unless top file-name-handler-alist)))
     (if (string-prefix-p "/:" (file-local-name name))
@@ -488,47 +469,19 @@ inode-number and device-number."
 
 ;;;; Defined in image.el
 
-(compat-defun image-property (image property) ;; <UNTESTED>
+(compat-defun image-property (image property) ;; <OK>
   "Return the value of PROPERTY in IMAGE.
 Properties can be set with
 
   (setf (image-property IMAGE PROPERTY) VALUE)
 
 If VALUE is nil, PROPERTY is removed from IMAGE."
-  ;; :feature image
+  :feature image
   (plist-get (cdr image) property))
-
-(unless (eval-when-compile
-          (require 'image)
-          (get 'image-property 'gv-expander))
-  (gv-define-setter image-property (image property value)
-    (let ((image* (make-symbol "image"))
-          (property* (make-symbol "property"))
-          (value* (make-symbol "value")))
-      `(let ((,image* ,image)
-             (,property* ,property)
-             (,value* ,value))
-         (if
-             (null ,value*)
-             (while
-                 (cdr ,image*)
-               (if
-                   (eq
-                    (cadr ,image*)
-                    ,property*)
-                   (setcdr ,image*
-                           (cdddr ,image*))
-                 (setq ,image*
-                       (cddr ,image*))))
-           (setcdr ,image*
-                   (plist-put
-                    (cdr ,image*)
-                    ,property* ,value*)))))))
 
 ;;;; Defined in rmc.el
 
-(compat-defun read-multiple-choice ;; <UNTESTED>
-    (prompt choices &optional _help-string _show-help long-form)
+(compat-defun read-multiple-choice (prompt choices) ;; <OK>
   "Ask user to select an entry from CHOICES, promting with PROMPT.
 This function allows to ask the user a multiple-choice question.
 
@@ -537,36 +490,23 @@ KEY is a character the user should type to select the entry.
 NAME is a short name for the entry to be displayed while prompting
 \(if there's no room, it might be shortened).
 
-If LONG-FORM, do a `completing-read' over the NAME elements in
-CHOICES instead.
-
 NOTE: This is a partial implementation of `read-multiple-choice', that
 among other things doesn't offer any help and ignores the
 optional DESCRIPTION field."
-  (if long-form
-      (let ((options (mapconcat #'cadr choices "/"))
-            choice)
-        (setq prompt (concat prompt " (" options "): "))
-        (setq choice (completing-read prompt (mapcar #'cadr choices) nil t))
-        (catch 'found
-          (dolist (option choices)
-            (when (string= choice (cadr option))
-              (throw 'found option)))
-          (error "Invalid choice")))
-    (let ((options
-           (mapconcat
-            (lambda (opt)
-              (format
-               "[%s] %s"
-               (key-description (string (car opt)))
-               (cadr opt)))
-            choices " "))
-          choice)
-      (setq prompt (concat prompt " (" options "): "))
-      (while (not (setq choice (assq (read-char prompt) choices)))
-        (message "Invalid choice")
-        (sit-for 1))
-      choice)))
+  (let ((options
+         (mapconcat
+          (lambda (opt)
+            (format
+             "[%s] %s"
+             (key-description (string (car opt)))
+             (cadr opt)))
+          choices " "))
+        choice)
+    (setq prompt (concat prompt " (" options "): "))
+    (while (not (setq choice (assq (read-event prompt) choices)))
+      (message "Invalid choice")
+      (sit-for 1))
+    choice))
 
 (provide 'compat-26)
 ;;; compat-26.el ends here

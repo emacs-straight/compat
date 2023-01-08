@@ -30,9 +30,9 @@
 ;; calling convention or behavior changed between Emacs versions.
 
 ;; The functions tested here are guaranteed to work on the Emacs versions
-;; tested by continuous integration.  This includes 24.4, 24.5, 25.1, 25.2,
-;; 25.3, 26.1, 26.2, 26.3, 27.1, 27.2, 28.1 and the current Emacs master
-;; branch.
+;; tested by continuous integration. This includes 24.4, 24.5, 25.1, 25.2,
+;; 25.3, 26.1, 26.2, 26.3, 27.1, 27.2, 28.1, 28.2 and the current Emacs
+;; master branch.
 
 ;;; Code:
 
@@ -40,6 +40,7 @@
 (require 'compat)
 (require 'subr-x)
 (require 'time-date)
+(require 'image)
 (require 'text-property-search nil t)
 
 (defmacro should-equal (a b)
@@ -58,6 +59,100 @@
     (should (symbolp sym))
     (setq list (funcall sym list "first" 1 #'string=))
     (should (eq (compat-call plist-get list "first" #'string=) 1))))
+
+(ert-deftest pos-bol ()
+  (with-temp-buffer
+    (insert (propertize "one" 'field 1)
+            (propertize "two" 'field 2)
+            (propertize "tri" 'field 3)
+            "\n")
+    (insert (propertize "one" 'field 1)
+            (propertize "two" 'field 2)
+            (propertize "tri" 'field 3)
+            "\n")
+    (goto-char 5)
+    (should-equal (line-beginning-position) 4)
+    (should-equal (line-end-position) 7)
+    (should-equal (pos-bol) 1)
+    (should-equal (pos-eol) 10)
+    (should-equal (line-beginning-position 1) 4)
+    (should-equal (line-end-position 1) 7)
+    (should-equal (pos-bol 1) 1)
+    (should-equal (pos-eol 1) 10)
+    (should-equal (line-beginning-position 2) 11)
+    (should-equal (line-end-position 2) 20)
+    (should-equal (pos-bol 2) 11)
+    (should-equal (pos-eol 2) 20)
+    (goto-char 15)
+    (should-equal (line-beginning-position) 14)
+    (should-equal (line-end-position) 17)
+    (should-equal (pos-bol) 11)
+    (should-equal (pos-eol) 20)
+    (should-equal (line-beginning-position 1) 14)
+    (should-equal (line-end-position 1) 17)
+    (should-equal (pos-bol 1) 11)
+    (should-equal (pos-eol 1) 20)
+    (should-equal (line-beginning-position 0) 1)
+    (should-equal (line-end-position 0) 10)
+    (should-equal (pos-bol 0) 1)
+    (should-equal (pos-eol 0) 10)))
+
+(ert-deftest image-property ()
+  (let ((image (list 'image)))
+    ;; Add properties.
+    (setf (image-property image :scale) 1)
+    (should-equal image '(image :scale 1))
+    (setf (image-property image :width) 8)
+    (should-equal image '(image :scale 1 :width 8))
+    (setf (image-property image :height) 16)
+    (should-equal image '(image :scale 1 :width 8 :height 16))
+    ;; Delete properties.
+    (setf (image-property image :type) nil)
+    (should-equal image '(image :scale 1 :width 8 :height 16))
+    (setf (image-property image :scale) nil)
+    (should-equal image '(image :width 8 :height 16))
+    (setf (image-property image :height) nil)
+    (should-equal image '(image :width 8))
+    (setf (image-property image :width) nil)
+    (should-equal image '(image))))
+
+(ert-deftest read-multiple-choice ()
+  (let ((orig-re (symbol-function #'read-event))
+        (orig-rc (symbol-function #'read-char))
+        ;;(orig-cr completing-read-function)
+        )
+    (unwind-protect
+        (dolist (test '(("Choose"
+                         (?a "first" "first description")
+                         (?b "second" "second description")
+                         (?c "third"))
+                        ("Do it?" (?y "yes") (?n "no"))))
+          (dolist (choice (cdr test))
+            (fset #'read-char (lambda (&rest _) (car choice)))
+            (fset #'read-event (lambda (&rest _) (car choice)))
+            ;; TODO long form support
+            ;;(setq completing-read-function (lambda (&rest _) (cadr choice)))
+            ;;(should-equal choice (read-multiple-choice (car test) (cdr test) nil nil 'long))
+            (should-equal choice (read-multiple-choice (car test) (cdr test)))))
+      (fset #'read-event orig-re)
+      (fset #'read-char orig-rc)
+      ;;(setq completing-read-function orig-cr)
+      )))
+
+(ert-deftest with-environment-variables ()
+  (let ((A "COMPAT_TESTS__VAR") (B "/foo/bar"))
+    (should-not (getenv A))
+    (with-environment-variables ((A B))
+      (should-equal (getenv A) B))
+    (should-not (getenv A))))
+
+(ert-deftest recenter ()
+  (save-window-excursion
+    (set-window-buffer nil (current-buffer))
+    (compat-call recenter nil nil)
+    (compat-call recenter nil t)
+    (compat-call recenter 1 nil)
+    (compat-call recenter 1 t)))
 
 (ert-deftest get-display-property ()
   (with-temp-buffer
@@ -252,6 +347,22 @@
 (ert-deftest function-put ()
   (function-put #'compat-tests--function-put 'compat-test 42)
   (should-equal 42 (function-get #'compat-tests--function-put 'compat-test)))
+
+(ert-deftest function-alias-p ()
+  (defun compat-tests--alias-fun ())
+  (should-not (function-alias-p 1))
+  (should-not (function-alias-p 'compat-tests--alias-fun))
+  (defalias 'compat-tests--alias-a 'compat-tests--alias-b)
+  (defalias 'compat-tests--alias-b 'compat-tests--alias-c)
+  (should-equal (function-alias-p 'compat-tests--alias-a)
+                '(compat-tests--alias-b compat-tests--alias-c))
+  (defalias 'compat-tests--alias-d 'compat-tests--alias-e)
+  (defalias 'compat-tests--alias-e 'compat-tests--alias-d)
+  (should-error (function-alias-p 'compat-tests--alias-d))
+  (should-equal (function-alias-p 'compat-tests--alias-d 'noerror)
+                '(compat-tests--alias-e))
+  (should-equal (function-alias-p 'compat-tests--alias-d t)
+                '(compat-tests--alias-e)))
 
 (ert-deftest ignore-error ()
   (should-equal (ignore-error (end-of-file)
@@ -639,6 +750,14 @@
   (should-equal t (always 1))                    ;; single argument
   (should-equal t (always 1 2 3 4)))             ;; multiple arguments
 
+(ert-deftest with-existing-directory ()
+  (let ((dir (make-temp-name "/tmp/not-exist-")))
+    (let ((default-directory dir))
+      (should-not (file-exists-p default-directory)))
+    (with-existing-directory
+      (should-not (equal dir default-directory))
+      (should (file-exists-p default-directory)))))
+
 (ert-deftest directory-name-p ()
   (should (directory-name-p "/"))
   (should-not (directory-name-p "/file"))
@@ -652,6 +771,10 @@
   (should-not (directory-name-p "dir/file"))
   (should (directory-name-p "dir/subdir/"))
   (should-not (directory-name-p "dir/subdir")))
+
+(ert-deftest mounted-file-systems ()
+  (should-not (string-match-p mounted-file-systems "/etc/"))
+  (should (string-match-p mounted-file-systems "/mnt/")))
 
 (ert-deftest make-lock-file-name ()
   (should-equal (expand-file-name ".#") (make-lock-file-name ""))
@@ -856,13 +979,13 @@
     (insert "foo bar zot foobar")
     (should (= (replace-string-in-region "foo" "new" (point-min) (point-max))
                2))
-    (should (equal (buffer-string) "new bar zot newbar")))
+    (should-equal (buffer-string) "new bar zot newbar"))
 
   (with-temp-buffer
     (insert "foo bar zot foobar")
     (should (= (replace-string-in-region "foo" "new" (point-min) 14)
                1))
-    (should (equal (buffer-string) "new bar zot foobar")))
+    (should-equal (buffer-string) "new bar zot foobar"))
 
   (with-temp-buffer
     (insert "foo bar zot foobar")
@@ -872,7 +995,7 @@
     (insert "Foo bar zot foobar")
     (should (= (replace-string-in-region "Foo" "new" (point-min))
                1))
-    (should (equal (buffer-string) "new bar zot foobar")))
+    (should-equal (buffer-string) "new bar zot foobar"))
 
   ;; There was a bug in the Emacs 28 implementation
   ;; Fixed in Emacs d8f392bccd46cdb238ec96964f220ffb9d81cc44
@@ -881,28 +1004,28 @@
       (insert "foo bar baz")
       (should (= (replace-string-in-region "ba" "quux corge grault" (point-min))
                  2))
-      (should (equal (buffer-string)
-                     "foo quux corge graultr quux corge graultz")))
+      (should-equal (buffer-string)
+                     "foo quux corge graultr quux corge graultz"))
 
     (with-temp-buffer
       (insert "foo bar bar")
       (should (= (replace-string-in-region " bar" "" (point-min) 8)
                  1))
-      (should (equal (buffer-string)
-                     "foo bar")))))
+      (should-equal (buffer-string)
+                     "foo bar"))))
 
 (ert-deftest replace-regexp-in-region ()
   (with-temp-buffer
     (insert "foo bar zot foobar")
     (should (= (replace-regexp-in-region "fo+" "new" (point-min) (point-max))
                2))
-    (should (equal (buffer-string) "new bar zot newbar")))
+    (should-equal (buffer-string) "new bar zot newbar"))
 
   (with-temp-buffer
     (insert "foo bar zot foobar")
     (should (= (replace-regexp-in-region "fo+" "new" (point-min) 14)
                1))
-    (should (equal (buffer-string) "new bar zot foobar")))
+    (should-equal (buffer-string) "new bar zot foobar"))
 
   (with-temp-buffer
     (insert "foo bar zot foobar")
@@ -912,7 +1035,7 @@
     (insert "Foo bar zot foobar")
     (should (= (replace-regexp-in-region "Fo+" "new" (point-min))
                1))
-    (should (equal (buffer-string) "new bar zot foobar")))
+    (should-equal (buffer-string) "new bar zot foobar"))
 
   ;; There was a bug in the Emacs 28 implementation
   ;; Fixed in Emacs d8f392bccd46cdb238ec96964f220ffb9d81cc44
@@ -921,15 +1044,15 @@
       (insert "foo bar baz")
       (should (= (replace-regexp-in-region "ba." "quux corge grault" (point-min))
                  2))
-      (should (equal (buffer-string)
-                     "foo quux corge grault quux corge grault")))
+      (should-equal (buffer-string)
+                     "foo quux corge grault quux corge grault"))
 
     (with-temp-buffer
       (insert "foo bar bar")
       (should (= (replace-regexp-in-region " bar" "" (point-min) 8)
                  1))
-      (should (equal (buffer-string)
-                     "foo bar")))))
+      (should-equal (buffer-string)
+                     "foo bar"))))
 
 (ert-deftest string-split ()
   (should-equal '("a" "b" "c") (split-string "a b c"))
