@@ -211,19 +211,126 @@
     (define-key map (kbd "C-x C-f") #'find-file)
     (define-key map (kbd "SPC") #'minibuffer-complete-word)
     (define-key map (kbd "C-c") mode-specific-map)
+    (define-key map (kbd "s-c") [?\C-c ?\C-c])
     map))
-(defvar-keymap compat-tests--map-2
+(defvar compat-tests--map-2
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "C-x C-f" #'find-file)
+    (keymap-set map "SPC" #'minibuffer-complete-word)
+    (keymap-set map "C-c" mode-specific-map)
+    (keymap-set map "s-c" "C-c C-c")
+    map))
+(defvar-keymap compat-tests--map-3
   "C-x C-f" #'find-file
   "SPC" #'minibuffer-complete-word
-  "C-c" mode-specific-map)
-(defvar compat-tests--map-3
+  "C-c" mode-specific-map
+  "s-c" "C-c C-c")
+(defvar compat-tests--map-4
   (define-keymap
     "C-x C-f" #'find-file
     "SPC" #'minibuffer-complete-word
-    "C-c" mode-specific-map))
+    "C-c" mode-specific-map
+    "s-c" "C-c C-c"))
 (ert-deftest defvar-keymap ()
   (should-equal compat-tests--map-1 compat-tests--map-2)
-  (should-equal compat-tests--map-1 compat-tests--map-3))
+  (should-equal compat-tests--map-1 compat-tests--map-3)
+  (should-equal compat-tests--map-1 compat-tests--map-4))
+
+(ert-deftest key-parse ()
+  (should-equal (key-parse "f") [?f])
+  (should-equal (key-parse "X") [?X])
+  (should-equal (key-parse "X f") [?X ?f])
+
+  (should-equal (key-parse "<F2>") [F2])
+  (should-equal (key-parse "<f1> <f2> TAB") [f1 f2 ?\t])
+  (should-equal (key-parse "<f1> RET") [f1 ?\r])
+  (should-equal (key-parse "<f1> SPC") [f1 ?\s])
+  (should-equal (key-parse "<f1>") [f1])
+  (should-equal (key-parse "<return>") [return])
+
+  ;; ;; Modifiers:
+  (should-equal (key-parse "C-x") [?\C-x])
+  (should-equal (key-parse "C-x a") [?\C-x ?a])
+  (should-equal (key-parse "C-;") [?\C-;])
+  (should-equal (key-parse "C-a") [?\C-a])
+  (should-equal (key-parse "C-c SPC") [?\C-c ?\s])
+  (should-equal (key-parse "C-c TAB") [?\C-c ?\t])
+  (should-equal (key-parse "C-c c") [?\C-c ?c])
+  (should-equal (key-parse "C-x 4 C-f") [?\C-x ?4 ?\C-f])
+  (should-equal (key-parse "C-x C-f") [?\C-x ?\C-f])
+  (should-equal (key-parse "C-M-<down>") [C-M-down])
+  (should-equal (key-parse "C-RET") [?\C-\r])
+  (should-equal (key-parse "C-SPC") [?\C-\s])
+  (should-equal (key-parse "C-TAB") [?\C-\t])
+  (should-equal (key-parse "C-<down>") [C-down])
+  (should-equal (key-parse "C-c C-c C-c") [?\C-c ?\C-c ?\C-c])
+
+  (should-equal (key-parse "M-a") [?\M-a])
+  (should-equal (key-parse "M-<DEL>") [?\M-\d])
+  (should-equal (key-parse "C-M-a") [?\C-\M-a])
+  (should-equal (key-parse "M-ESC") [?\M-\e])
+  (should-equal (key-parse "M-RET") [?\M-\r])
+  (should-equal (key-parse "M-SPC") [?\M-\s])
+  (should-equal (key-parse "M-TAB") [?\M-\t])
+  (should-equal (key-parse "M-x a") [?\M-x ?a])
+  (should-equal (key-parse "M-<up>") [M-up])
+  (should-equal (key-parse "M-c M-c M-c") [?\M-c ?\M-c ?\M-c])
+
+  (should-equal (key-parse "s-SPC") [?\s-\s])
+  (should-equal (key-parse "s-a") [?\s-a])
+  (should-equal (key-parse "s-x a") [?\s-x ?a])
+  (should-equal (key-parse "s-c s-c s-c") [?\s-c ?\s-c ?\s-c])
+
+  (should-equal (key-parse "S-a") [?\S-a])
+  (should-equal (key-parse "S-x a") [?\S-x ?a])
+  (should-equal (key-parse "S-c S-c S-c") [?\S-c ?\S-c ?\S-c])
+
+  (should-equal (key-parse "H-<RET>") [?\H-\r])
+  (should-equal (key-parse "H-DEL") [?\H-\d])
+  (should-equal (key-parse "H-a") [?\H-a])
+  (should-equal (key-parse "H-x a") [?\H-x ?a])
+  (should-equal (key-parse "H-c H-c H-c") [?\H-\c ?\H-\c ?\H-\c])
+
+  (should-equal (key-parse "A-H-a") [?\A-\H-a])
+  (should-equal (key-parse "A-SPC") [?\A-\s])
+  (should-equal (key-parse "A-TAB") [?\A-\t])
+  (should-equal (key-parse "A-a") [?\A-a])
+  (should-equal (key-parse "A-c A-c A-c") [?\A-c ?\A-c ?\A-c])
+
+  (should-equal (key-parse "C-M-a") [?\C-\M-a])
+  (should-equal (key-parse "C-M-<up>") [C-M-up])
+
+  ;; ;; Special characters.
+  (should-equal (key-parse "DEL") [?\d])
+  (should-equal (key-parse "ESC C-a") [?\e ?\C-a])
+  (should-equal (key-parse "ESC") [?\e])
+  (should-equal (key-parse "LFD") [?\n])
+  (should-equal (key-parse "NUL") [?\0])
+  (should-equal (key-parse "RET") [?\r])
+  (should-equal (key-parse "SPC") [?\s])
+  (should-equal (key-parse "TAB") [?\t])
+
+  ;; ;; Multibyte
+  (should-equal (key-parse "ñ") [?ñ])
+  (should-equal (key-parse "ü") [?ü])
+  (should-equal (key-parse "ö") [?ö])
+  (should-equal (key-parse "ğ") [?ğ])
+  (should-equal (key-parse "ա") [?ա])
+  (should-equal (key-parse "C-ü") [?\C-ü])
+  (should-equal (key-parse "M-ü") [?\M-ü])
+  (should-equal (key-parse "H-ü") [?\H-ü])
+
+  ;; ;; Handle both new and old style key descriptions (bug#45536).
+  (should-equal (key-parse "s-<return>") [s-return])
+  (should-equal (key-parse "C-M-<return>") [C-M-return])
+
+  (should-equal (key-parse "<mouse-1>") [mouse-1])
+  (should-equal (key-parse "<Scroll_Lock>") [Scroll_Lock]))
+
+(ert-deftest keymap--check ()
+  (keymap--check "X")
+  (should-error (keymap--check ""))
+  (should-error (keymap--check " X")))
 
 (ert-deftest key-valid-p ()
   (should-not (key-valid-p ""))
@@ -969,10 +1076,19 @@
   (should-equal '(1 2 3 4) (flatten-tree '(((1 nil)) 2 (((3 nil nil) 4))))))
 
 (ert-deftest sort ()
+  (should-equal (list 1 2 3) (sort (list 1 2 3) #'<))
+  (should-equal (list 1 2 3) (sort (list 1 3 2) #'<))
+  (should-equal (list 1 2 3) (sort (list 3 2 1) #'<))
   (should-equal (list 1 2 3) (compat-call sort (list 1 2 3) #'<))
+  (should-equal (list 1 2 3) (compat-call sort (list 1 3 2) #'<))
   (should-equal (list 1 2 3) (compat-call sort (list 3 2 1) #'<))
-  (should-equal '[1 2 3] (compat-call sort '[1 2 3] #'<))
-  (should-equal '[1 2 3] (compat-call sort '[3 2 1] #'<)))
+  (should-equal [1 2 3] (compat-call sort [1 2 3] #'<))
+  (should-equal [1 2 3] (compat-call sort [1 3 2] #'<))
+  (should-equal [1 2 3] (compat-call sort [3 2 1] #'<))
+  ;; Test side effect
+  (let ((vec [4 5 8 3 1 2 3 2 3 4]))
+    (compat-call sort vec #'>)
+    (should-equal vec [8 5 4 4 3 3 3 2 2 1])))
 
 (ert-deftest replace-string-in-region ()
   (with-temp-buffer
@@ -1378,11 +1494,7 @@
   (should-equal "ccc" (string-replace "ab" "" "abcabcabc"))
   (should-equal "aaaaaa" (string-replace "a" "aa" "aaa"))
   (should-equal "defg" (string-replace "abc" "defg" "abc"))
-  (when (version<= "24.4" emacs-version)
-    ;; FIXME: Emacs 24.3 do not know of `wrong-length-argument' and
-    ;; therefore fail this test, even if the right symbol is being
-    ;; thrown.
-    (should-error (string-replace "" "x" "abc") :type 'wrong-length-argument)))
+  (should-error (string-replace "" "x" "abc") :type 'wrong-length-argument))
 
 (ert-deftest when-let* ()
   (should-equal "second"
@@ -1408,7 +1520,31 @@
   (should-equal "else"
    (if-let* (((= 5 6))) "then" "else")))
 
+(defmacro compat-tests--if (cond then &rest else)
+  (declare (indent 2))
+  (if cond then (macroexp-progn else)))
+
 (ert-deftest when-let ()
+  ;; FIXME Broken on Emacs 25
+  (compat-tests--if (= emacs-major-version 25)
+      (should-equal "second"
+                    (when-let
+                        ((x 3)
+                         (y 2)
+                         (z (+ x y))
+                         ;; ((= z 5)) ;; FIXME Broken on Emacs 25
+                         (true t))
+                      "first" "second"))
+    (should-equal "second"
+                  (when-let
+                      ((x 3)
+                       (y 2)
+                       (z (+ x y))
+                       ((= z 5))
+                       (true t))
+                    "first" "second"))
+    (should-equal "then" (when-let (((= 5 5))) "then"))
+    (should-not (when-let (((= 5 6))) t)))
   (should-equal "last"
                 (when-let (e (memq 0 '(1 2 3 0 5 6)))
                   "first" "last"))
@@ -1419,6 +1555,26 @@
                   "first" "last")))
 
 (ert-deftest if-let ()
+  ;; FIXME Broken on Emacs 25
+  (compat-tests--if (= emacs-major-version 25)
+      (should-equal "then"
+                    (if-let
+                        ((x 3)
+                         (y 2)
+                         (z (+ x y))
+                         ;; ((= z 5)) ;; FIXME Broken on Emacs 25
+                         (true t))
+                        "then" "else"))
+    (should-equal "then"
+                  (if-let
+                      ((x 3)
+                       (y 2)
+                       (z (+ x y))
+                       ((= z 5))
+                       (true t))
+                      "then" "else"))
+    (should-equal "else" (if-let (((= 5 6))) "then" "else"))
+    (should-not (if-let (((= 5 6))) t nil)))
   (should (if-let (e (memq 0 '(1 2 3 0 5 6)))
               e))
   (should (if-let ((e (memq 0 '(1 2 3 0 5 6))))
@@ -1428,10 +1584,7 @@
                   t))
   (should-not (if-let ((d (memq 0 '(1 2 3 0 5 6)))
                                (e (memq 0 '(1 2 3 5 6))))
-                  t))
-  ;; TODO broken on Emacs 25
-  ;;(should-not (if-let (((= 5 6))) t nil))
-  )
+                  t)))
 
 (ert-deftest and-let* ()
   (should                               ;trivial body
@@ -1789,13 +1942,6 @@
   ;; (should (time-equal-p (current-time) nil))
   ;; (should (time-equal-p nil (current-time)))
 
-  ;; While `sleep-for' returns nil, indicating the current time, this
-  ;; behaviour seems to be undefined.  Relying on it is therefore not
-  ;; advised.
-  ;;(should-not (time-equal-p (current-time) (ignore (sleep-for 0.01))))
-  ;;(should-not (time-equal-p (current-time) (progn
-  ;;                             (sleep-for 0.01)
-  ;;                            (current-time))))
   (should (time-equal-p '(1 2 3 4) '(1 2 3 4)))
   (should-not (time-equal-p '(1 2 3 4) '(1 2 3 5)))
   (should-not (time-equal-p '(1 2 3 5) '(1 2 3 4)))
@@ -1804,7 +1950,18 @@
   (should-not (time-equal-p '(1 2 3 4) '(1 3 3 4)))
   (should-not (time-equal-p '(1 3 3 4) '(1 2 3 4)))
   (should-not (time-equal-p '(1 2 3 4) '(2 2 3 4)))
-  (should-not (time-equal-p '(2 2 3 4) '(1 2 3 4))))
+  (should-not (time-equal-p '(2 2 3 4) '(1 2 3 4)))
+
+  ;; TODO fix broken tests
+  ;; (should (time-equal-p 0 (time-since nil)))
+  ;; (should (time-equal-p (days-to-time 0) '(0 0)))
+  ;; (should (time-equal-p (days-to-time 1) '(1 20864)))
+  ;; (should (time-equal-p (days-to-time 999) '(1317 2688)))
+  ;; (should (time-equal-p (days-to-time 0.0) '(0 0 0 0)))
+  ;; (should (time-equal-p (days-to-time 0.5) '(0 43200 0 0)))
+  ;; (should (time-equal-p (days-to-time 1.0) '(1 20864 0 0)))
+  ;; (should (time-equal-p (days-to-time 999.0) '(1317 2688 0 0)))
+  )
 
 (ert-deftest decoded-time-getters ()
   (let ((time '(second minute hour day month year weekday dst zone)))

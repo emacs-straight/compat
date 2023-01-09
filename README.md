@@ -30,12 +30,12 @@ contributions.
 Source code
 -----------
 
-Compat is developed on [GitHub].  The code is also mirrored on [SourceHut].
+Compat is developed on [GitHub]. The code is mirrored to the [GNU ELPA repository].
 
 [GitHub]:
     https://github.com/emacs-compat/compat
-[SourceHut]:
-    https://sr.ht/~pkal/compat
+[GNU ELPA repository]:
+    https://git.savannah.gnu.org/cgit/emacs/elpa.git/tree/?h=externals/compat
 
 Bug and patches
 ---------------
