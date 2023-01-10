@@ -1,4 +1,4 @@
-;;; compat-tests.el --- Tests for compat.el      -*- lexical-binding: t; -*-
+;;; compat-tests.el --- Tests for Compat -*- lexical-binding: t; no-byte-compile: t; -*-
 
 ;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
@@ -59,6 +59,12 @@
     (should (symbolp sym))
     (setq list (funcall sym list "first" 1 #'string=))
     (should (eq (compat-call plist-get list "first" #'string=) 1))))
+
+(ert-deftest make-separator-line ()
+  (should-equal (length (make-separator-line 10)) 11)
+  (should (string-suffix-p "\n" (make-separator-line 10)))
+  (should (string-suffix-p "\n" (make-separator-line)))
+  (should-equal (replace-regexp-in-string "[^\n]" "" (make-separator-line)) "\n"))
 
 (ert-deftest pos-bol ()
   (with-temp-buffer
@@ -251,7 +257,7 @@
   ;; ;; Modifiers:
   (should-equal (key-parse "C-x") [?\C-x])
   (should-equal (key-parse "C-x a") [?\C-x ?a])
-  (should-equal (key-parse "C-;") [?\C-;])
+  (should-equal (key-parse "C-;") [67108923])
   (should-equal (key-parse "C-a") [?\C-a])
   (should-equal (key-parse "C-c SPC") [?\C-c ?\s])
   (should-equal (key-parse "C-c TAB") [?\C-c ?\t])
@@ -1673,6 +1679,7 @@
 
   ;; With testfn:
   (should-equal 1 (compat-call alist-get "a" '(("a" . 1) ("b" . 2) ("c" . 3)) nil nil #'equal))
+  (should-equal 'd (compat-call alist-get "x" '(("a" . 1) ("b" . 2) ("c" . 3)) 'd nil #'equal))
   (should-equal 1 (compat-call alist-get 3 '((10 . 10) (4 . 4) (1 . 1) (9 . 9)) nil nil #'<))
   (should-equal '(a) (compat-call alist-get "b" '(("c" c) ("a" a) ("b" b)) nil nil #'string-lessp))
   (should-equal 'c (compat-call alist-get "a" '(("a" . a) ("a" . b) ("b" . c)) nil nil

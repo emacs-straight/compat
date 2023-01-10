@@ -27,7 +27,7 @@
 
 ;;;; Defined in fns.c
 
-;;* INCOMPLETE FEATURE: Should handle multibyte regular expressions
+;; FIXME Should handle multibyte regular expressions
 (compat-defun string-search (needle haystack &optional start-pos) ;; <OK>
   "Search for the string NEEDLE in the strign HAYSTACK.
 
@@ -279,9 +279,18 @@ and BLUE, is normalized to have its value in [0,65535]."
                      (<= 0 b) (<= b 65535))
             (list r g b))))))))
 
+;;;; Defined in simple.el
+
+(compat-defun make-separator-line (&optional length) ;; <OK>
+  "Make a string appropriate for usage as a visual separator line.
+If LENGTH is nil, use the window width."
+    (concat (propertize (make-string (or length (1- (window-width))) ?-)
+                        'face 'separator-line)
+            "\n"))
+
 ;;;; Defined in subr.el
 
-;;* INCOMPLETE FEATURE: Should handle multibyte regular expressions
+;; FIXME Should handle multibyte regular expressions
 (compat-defun string-replace (fromstring tostring instring) ;; <OK>
   "Replace FROMSTRING with TOSTRING in INSTRING each time it occurs."
   (when (equal fromstring "")
@@ -717,8 +726,6 @@ just the selected frame."
     (count-windows minibuf)))
 
 ;;;; Defined in thingatpt.el
-
-(declare-function mouse-set-point "mouse" (event &optional promote-to-region))
 
 (compat-defun thing-at-mouse (event thing &optional no-properties) ;; <UNTESTED>
   "Return the THING at mouse click.
