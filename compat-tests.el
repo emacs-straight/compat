@@ -60,6 +60,29 @@
     (setq list (funcall sym list "first" 1 #'string=))
     (should (eq (compat-call plist-get list "first" #'string=) 1))))
 
+(ert-deftest buttonize ()
+  (let ((b (buttonize "button" 'c 'd 'h)))
+    (should-equal b "button")
+    (should-equal 'c (get-text-property 0 'action b))
+    (should-equal 'c (get-text-property 5 'action b))
+    (should-equal 'd (get-text-property 0 'button-data b))
+    (should-equal 'd (get-text-property 5 'button-data b))
+    (should-equal 'h (get-text-property 0 'help-echo b))
+    (should-equal 'h (get-text-property 5 'help-echo b))))
+
+(ert-deftest buttonize-region ()
+  (with-temp-buffer
+    (insert "<button>")
+    (buttonize-region 2 7 'c 'd 'h)
+    (should-not (get-text-property 1 'action))
+    (should-not (get-text-property 7 'action))
+    (should-equal 'c (get-text-property 2 'action))
+    (should-equal 'c (get-text-property 6 'action))
+    (should-equal 'd (get-text-property 2 'button-data))
+    (should-equal 'd (get-text-property 6 'button-data))
+    (should-equal 'h (get-text-property 2 'help-echo))
+    (should-equal 'h (get-text-property 6 'help-echo))))
+
 (ert-deftest with-memoization ()
   (let ((x (cons nil nil)) y computed)
     (with-memoization (car x)
@@ -1529,6 +1552,22 @@
   (should-equal "defg" (string-replace "abc" "defg" "abc"))
   (should-error (string-replace "" "x" "abc") :type 'wrong-length-argument))
 
+(ert-deftest dlet ()
+  (should-not (boundp 'compat-tests--dlet1))
+  (should-not (boundp 'compat-tests--dlet2))
+  (dlet ((compat-tests--dlet1 1)
+         (compat-tests--dlet2 2))
+    (should-equal (symbol-value 'compat-tests--dlet1) 1)
+    (should-equal (symbol-value 'compat-tests--dlet2) 2))
+  (should-not (boundp 'compat-tests--dlet1))
+  (should-not (boundp 'compat-tests--dlet2)))
+
+(ert-deftest while-let ()
+  (let ((first '(1 2 3 4)) (second '(a b c)) zipped)
+    (while-let ((x (pop first)) (y (pop second)))
+      (push (cons x y) zipped))
+    (should-equal '((3 . c) (2 . b) (1 . a)) zipped)))
+
 (ert-deftest when-let* ()
   (should-equal "second"
    (when-let*
@@ -1959,6 +1998,15 @@
     (should-equal 'bar (compat-call lookup-key b-map "x"))
     (should-equal 'foo (compat-call lookup-key (list a-map b-map) "x"))
     (should-equal 'bar (compat-call lookup-key (list b-map a-map) "x"))))
+
+;; We need an indirection since `macroexp-file-name' is a function and not a
+;; macro. `macroexp-file-name' is not a function since it is used mostly in a
+;; macro context.
+(defmacro compat-tests--filename ()
+  (macroexp-file-name))
+
+(ert-deftest macroexp-file-name ()
+  (should-equal (file-name-nondirectory (compat-tests--filename)) "compat-tests.el"))
 
 (ert-deftest macroexpand-1 ()
   (should-equal '(if a b c) (macroexpand-1 '(if a b c)))

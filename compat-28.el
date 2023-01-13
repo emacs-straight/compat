@@ -405,7 +405,7 @@ If `default-directory' is already an existing directory, it's not changed."
               "/")))
      ,@body))
 
-(compat-defmacro dlet (binders &rest body) ;; <UNTESTED>
+(compat-defmacro dlet (binders &rest body) ;; <OK>
   "Like `let' but using dynamic scoping."
   (declare (indent 1) (debug let))
   `(let (_)
@@ -738,14 +738,13 @@ where the mouse button is clicked to find a thing nearby."
 
 ;;;; Defined in macroexp.el
 
-(compat-defun macroexp-file-name () ;; <UNTESTED>
+(compat-defun macroexp-file-name () ;; <OK>
   "Return the name of the file from which the code comes.
 Returns nil when we do not know.
 A non-nil result is expected to be reliable when called from a macro in order
 to find the file in which the macro's call was found, and it should be
 reliable as well when used at the top-level of a file.
 Other uses risk returning non-nil value that point to the wrong file."
-  :feature macroexp
   (let ((file (car (last current-load-list))))
     (or (if (stringp file) file)
         (bound-and-true-p byte-compile-current-file))))
@@ -767,23 +766,6 @@ The previous values will be be restored upon exit."
                  `(setenv ,(car elem) ,(cadr elem)))
                variables)
      ,@body))
-
-;;;; Defined in button.el
-
-(compat-defun button-buttonize (string callback &optional data) ;; <UNTESTED>
-  "Make STRING into a button and return it.
-When clicked, CALLBACK will be called with the DATA as the
-function argument.  If DATA isn't present (or is nil), the button
-itself will be used instead as the function argument."
-  :feature button
-  (propertize string
-              'face 'button
-              'button t
-              'follow-link t
-              'category t
-              'button-data data
-              'keymap button-map
-              'action callback))
 
 ;;;; Defined in time-data.el
 

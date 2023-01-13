@@ -326,7 +326,7 @@ this defaults to the current buffer."
           (put-text-property sub-start sub-end 'display disp object)))
       (setq sub-start sub-end))))
 
-(compat-defmacro while-let (spec &rest body) ;; <UNTESTED>
+(compat-defmacro while-let (spec &rest body) ;; <OK>
   "Bind variables according to SPEC and conditionally evaluate BODY.
 Evaluate each binding in turn, stopping if a binding value is nil.
 If all bindings are non-nil, eval BODY and repeat.
@@ -776,9 +776,8 @@ The binding is probably a symbol with a function definition.
 If optional argument ACCEPT-DEFAULT is non-nil, recognize default
 bindings; see the description of `keymap-lookup' for more details
 about this."
-  (let ((map (current-local-map)))
-    (when map
-      (keymap-lookup map keys accept-default))))
+  (when-let ((map (current-local-map)))
+    (keymap-lookup map keys accept-default)))
 
 (compat-defun keymap-global-lookup (keys &optional accept-default _message) ;; <UNTESTED>
   "Return the binding for command KEYS in current global keymap only.
@@ -957,6 +956,51 @@ command exists in this specific map, but it doesn't have the
              ,defvar-form
              ,@(nreverse props))
         defvar-form))))
+
+;;;; Defined in button.el
+
+(compat-defun button--properties (callback data help-echo) ;; <OK>
+  "Helper function."
+  (list 'font-lock-face 'button
+        'mouse-face 'highlight
+        'help-echo help-echo
+        'button t
+        'follow-link t
+        'category t
+        'button-data data
+        'keymap button-map
+        'action callback))
+
+(compat-defun buttonize (string callback &optional data help-echo) ;; <OK>
+  "Make STRING into a button and return it.
+When clicked, CALLBACK will be called with the DATA as the
+function argument.  If DATA isn't present (or is nil), the button
+itself will be used instead as the function argument.
+
+If HELP-ECHO, use that as the `help-echo' property.
+
+Also see `buttonize-region'."
+  (let ((string
+         (apply #'propertize string
+                (button--properties callback data help-echo))))
+    ;; Add the face to the end so that it can be overridden.
+    (add-face-text-property 0 (length string) 'button t string)
+    string))
+
+(compat-defun buttonize-region (start end callback &optional data help-echo) ;; <OK>
+  "Make the region between START and END into a button.
+When clicked, CALLBACK will be called with the DATA as the
+function argument.  If DATA isn't present (or is nil), the button
+itself will be used instead as the function argument.
+
+If HELP-ECHO, use that as the `help-echo' property.
+
+Also see `buttonize'."
+  (add-text-properties start end (button--properties callback data help-echo))
+  (add-face-text-property start end 'button t))
+
+;; Obsolete Alias since 29
+(compat-defalias button-buttonize buttonize :obsolete t)
 
 (provide 'compat-29)
 ;;; compat-29.el ends here
