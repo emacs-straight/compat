@@ -1,13 +1,92 @@
 #+title: compat.el - Changelog
 
-* Development
+* Release of "Compat" Version 29.1.3.2
 
-- Tests added
+- compat-26: Add ~make-temp-file~ with optional argument TEXT.
+- compat-27: Mark ~compat-call dired-get-marked-files~ as obsolete. See the
+  section limitations in the Compat manual.
+- compat-29: Add ~funcall-with-delayed-message~ and ~with-delayed-message~.
+- compat-29: Add ~ert-with-temp-file~ and ~ert-with-temp-directory~.
+- compat-29: Add ~set-transient-map~ with optional arguments MESSAGE and TIMEOUT.
+
+(Release <2023-02-01 Wed>)
+
+* Release of "Compat" Version 29.1.3.1
+
+- Fix regression, which prevented loading Compat in interpreted mode. We ensure
+  that Compat works interpreted and byte compiled by running the entire test
+  suite twice in the CI.
+- compat-27: Add ~file-name-unquote~.
+- compat-28: Add ~mark-thing-at-mouse~.
+- compat-29: Replace ~string-lines~ with version from Emacs 29, support optional
+  KEEP-NEWLINES argument.
+
+(Release <2023-01-25 Wed>)
+
+* Release of "Compat" Version 29.1.3.0
+
+- compat-25: Add ~hash-table-empty-p~.
+- compat-25: Add ~macroexp-parse-body~ and ~macroexp-quote~.
+- compat-25: Add ~region-noncontiguous-p~.
+- compat-25: Add ~save-mark-and-excursion~.
+- compat-26: Add ~read-answer~.
+- compat-26: Add ~region-bounds~.
+- compat-27: Add ~date-ordinal-to-time~.
+- compat-27: Add ~file-size-human-readable-iec~.
+- compat-27: Add ~major-mode-suspend~ and ~major-mode-restore~.
+- compat-27: Add ~make-decoded-time~.
+- compat-27: Add ~minibuffer-history-value~.
+- compat-27: Add ~read-char-from-minibuffer~.
+- compat-27: Add ~ring-resize~.
+- compat-28: Add ~color-dark-p~.
+- compat-28: Add ~directory-files-and-attributes~ with COUNT argument.
+- compat-28: Add ~text-quoting-style~.
+- compat-28: Add ~with-window-non-dedicated~.
+- compat-29: Add ~buffer-local-set-state~ and ~buffer-local-restore-state~.
+- compat-29: Add ~compiled-function-p~.
+- compat-29: Add ~count-sentences~.
+- compat-29: Add ~delete-line~.
+- compat-29: Add ~get-scratch-buffer-create~.
+- compat-29: Add ~list-of-strings-p~.
+- compat-29: Add ~plist-get~ generalized variable.
+- compat-29: Add ~plistp~.
+- compat-29: Add ~read-multiple-choice~ with LONG-FORM argument.
+- compat-29: Add ~readablep~.
+- compat-29: Add ~substitute-quotes~.
+- compat-29: Add ~use-region-beginning~, ~use-region-end~ and ~use-region-noncontiguous-p~.
+- compat-29: Add ~with-narrowing~.
+
+(Release <2023-01-22 Sun>)
+
+* Release of "Compat" Version 29.1.2.0
+
+- All compatibility functions are covered by tests!
+- Add links from compatibility definitions to tests.
+- BREAKING: Drop JSON parsing support (libjansson API, unused downstream).
+- BREAKING: Drop ~null-device~ (unused downstream).
+- BREAKING: Drop ~unlock-buffer~ (unused downstream).
+- compat-26: Add ~buffer-hash~.
+- compat-27: Add ~fixnump~ and ~bignump~.
+- compat-27: Add ~with-minibuffer-selected-window~.
+- compat-27: Add generalized variables for ~decoded-time-*~.
+- compat-28: Add ~macroexp-warn-and-return~.
+- compat-28: Add ~subr-native-elisp-p~.
+- compat-28: Add ~bounds-of-thing-at-mouse~.
+- compat-29: Add ~with-buffer-unmodified-if-unchanged~.
+- compat-29: Fix and test ~define-key~ with REMOVE argument.
+
+(Release <2023-01-16 Mon>)
+
+* Release of "Compat" Version 29.1.1.1
+
+- Add tests, 167 out of 203 definitions tested (82%).
 - compat-25: Improve algorithmic complexity of ~sort~.
 - compat-28: Add ~make-separator-line~.
 - compat-29: Minor fixes to ~keymap-*~ functions.
 - compat-29: Add ~with-memoization~.
 - compat-29: Add ~buttonize~ and ~buttonize-region~.
+
+(Release <2023-01-14 Sat>)
 
 * Release of "Compat" Version 29.1.1.0
 
@@ -46,8 +125,8 @@
   ~file-name-concat~, ~replace-regexp-in-region~, ~replace-string-in-region~.
 - Add new Emacs 29 APIs. Some of them are still untested and may change. If you
   intend to use an Emacs 29 API please be careful and if possible contribute
-  test cases. All untested functions are marked as ~<UNTESTED>~ in the Compat
-  code. Over time tests for all functions will be added gradually.
+  test cases. All untested functions are marked in the Compat code. Over time
+  tests for all functions will be added gradually.
 - Add the macros ~compat-call~ and ~compat-function~ to call compatibility
   functions. Since Compat avoids overwriting already existing functions, we must
   define separate compatibility function definitions for functions which changed
@@ -167,10 +246,5 @@ as some of these changes a functional.  These include:
 - The addition of the function =date-days-in-month=.
 - Handling out-of-directory byte compilation better.
 - Fixing the usage and edge-cases of =and-let*=.
-
-Furthermore a bug tracker was added: https://todo.sr.ht/~pkal/compat,
-which is the preferred way to report issues or feature requests.
-General problems, questions, etc. are still better discussed on the
-development mailing list: https://lists.sr.ht/~pkal/compat-devel.
 
 (Released <2022-04-22 Fri>)

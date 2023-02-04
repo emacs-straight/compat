@@ -1,4 +1,4 @@
-;;; compat-28.el --- Compatibility Layer for Emacs 28.1  -*- lexical-binding: t; -*-
+;;; compat-28.el --- Functionality added in Emacs 28.1 -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
@@ -17,8 +17,7 @@
 
 ;;; Commentary:
 
-;; Find here the functionality added in Emacs 28.1, needed by older
-;; versions.
+;; Functionality added in Emacs 28.1, needed by older Emacs versions.
 
 ;;; Code:
 
@@ -28,7 +27,7 @@
 ;;;; Defined in fns.c
 
 ;; FIXME Should handle multibyte regular expressions
-(compat-defun string-search (needle haystack &optional start-pos) ;; <OK>
+(compat-defun string-search (needle haystack &optional start-pos) ;; <compat-tests:string-search>
   "Search for the string NEEDLE in the strign HAYSTACK.
 
 The return value is the position of the first occurrence of
@@ -51,7 +50,7 @@ issues are inherited."
     (let ((case-fold-search nil))
       (string-match (regexp-quote needle) haystack start-pos))))
 
-(compat-defun length= (sequence length) ;; <OK>
+(compat-defun length= (sequence length) ;; [[compat-tests:length=]]
   "Returns non-nil if SEQUENCE has a length equal to LENGTH."
   (cond
    ((null sequence) (zerop length))
@@ -63,7 +62,7 @@ issues are inherited."
     (= (length sequence) length))
    ((signal 'wrong-type-argument sequence))))
 
-(compat-defun length< (sequence length) ;; <OK>
+(compat-defun length< (sequence length) ;; [[compat-tests:length<]]
   "Returns non-nil if SEQUENCE is shorter than LENGTH."
   (cond
    ((null sequence) (not (zerop length)))
@@ -73,7 +72,7 @@ issues are inherited."
     (< (length sequence) length))
    ((signal 'wrong-type-argument sequence))))
 
-(compat-defun length> (sequence length) ;; <OK>
+(compat-defun length> (sequence length) ;; [[compat-tests:length>]]
   "Returns non-nil if SEQUENCE is longer than LENGTH."
   (cond
    ((listp sequence)
@@ -84,7 +83,7 @@ issues are inherited."
 
 ;;;; Defined in fileio.c
 
-(compat-defun file-name-concat (directory &rest components) ;; <OK>
+(compat-defun file-name-concat (directory &rest components) ;; <compat-tests:file-name-concat>
   "Append COMPONENTS to DIRECTORY and return the resulting string.
 Elements in COMPONENTS must be a string or nil.
 DIRECTORY or the non-final elements in COMPONENTS may or may not end
@@ -107,30 +106,13 @@ inserted before contatenating."
 
 ;;;; Defined in alloc.c
 
-(compat-defalias garbage-collect-maybe ignore) ;; <OK>
-
-;;;; Defined in filelock.c
-
-(compat-defun unlock-buffer () ;; <UNTESTED>
-  "Handle `file-error' conditions.
-Handles file system errors by calling ‘display-warning’ and
-continuing as if the error did not occur."
-  :explicit t
-  (condition-case error
-      (unlock-buffer)
-    (file-error
-     (display-warning
-      '(unlock-file)
-      (message "%s, ignored" (error-message-string error))
-      :warning))))
+(compat-defalias garbage-collect-maybe ignore) ;; <compat-tests:garbage-collect-maybe>
 
 ;;;; Defined in characters.c
 
-(compat-defun string-width (string &optional from to) ;; <OK>
-  "Handle optional arguments FROM and TO.
-Optional arguments FROM and TO specify the substring of STRING to
-consider, and are interpreted as in `substring'."
-  :explicit t
+(compat-defun string-width (string &optional from to) ;; <compat-tests:string-width>
+  "Handle optional arguments FROM and TO."
+  :extended t
   (let* ((len (length string))
          (from (or from 0))
          (to (or to len)))
@@ -140,72 +122,25 @@ consider, and are interpreted as in `substring'."
 
 ;;;; Defined in dired.c
 
-(compat-defun directory-files (directory &optional full match nosort count) ;; <UNTESTED>
-  "Handle additional optional argument COUNT.
-If COUNT is non-nil and a natural number, the function will
- return COUNT number of file names (if so many are present)."
-  :explicit t
+(compat-defun directory-files (directory &optional full match nosort count) ;; <compat-tests:directory-files>
+  "Handle additional optional argument COUNT."
+  :extended t
   (let ((files (directory-files directory full match nosort)))
     (when (natnump count)
       (setf (nthcdr count files) nil))
     files))
 
-;;;; Defined in json.c
-
-;; TODO Check interaction with conditionally defined json functions
-(compat-defun json-serialize (object &rest args) ;; <UNTESTED>
-  "Handle top-level JSON values (RFC 8259)."
-  :explicit t
-  :min-version "27"
-  (if (or (listp object) (vectorp object))
-      (apply #'json-serialize object args)
-    (substring (json-serialize (list object)) 1 -1)))
-
-;; TODO Check interaction with conditionally defined json functions
-(compat-defun json-insert (object &rest args) ;; <UNTESTED>
-  "Handle top-level JSON values (RFC 8259)."
-  :explicit t
-  :min-version "27"
-  (if (or (listp object) (vectorp object))
-      (apply #'json-insert object args)
-    (insert (apply #'compat--json-serialize object args))))
-
-;; TODO Check interaction with conditionally defined json functions
-(compat-defun json-parse-string (string &rest args) ;; <UNTESTED>
-  "Handle top-level JSON values (RFC 8259)."
-  :explicit t
-  :min-version "27"
-  (if (string-match-p "\\`[[:space:]]*[[{]" string)
-      (apply #'json-parse-string string args)
-    ;; Wrap the string in an array, and extract the value back using
-    ;; `elt', to ensure that no matter what the value of `:array-type'
-    ;; is we can access the first element.
-    (elt (apply #'json-parse-string (concat "[" string "]") args) 0)))
-
-;; TODO Check interaction with conditionally defined json functions
-(compat-defun json-parse-buffer (&rest args) ;; <UNTESTED>
-  "Handle top-level JSON values (RFC 8259)."
-  :explicit t
-  :min-version "27"
-  (if (looking-at-p "[[:space:]]*[[{]")
-      (apply #'json-parse-buffer args)
-    (catch 'escape
-      (atomic-change-group
-        (with-syntax-table
-            (let ((st (make-syntax-table)))
-              (modify-syntax-entry ?\" "\"" st)
-              (modify-syntax-entry ?. "_" st)
-              st)
-          (let ((inhibit-read-only t))
-            (save-excursion
-            (insert "[")
-            (forward-sexp 1)
-            (insert "]"))))
-        (throw 'escape (elt (apply #'json-parse-buffer args) 0))))))
+(compat-defun directory-files-and-attributes (directory &optional full match nosort id-format count) ;; <compat-tests:directory-files-and-attributs>
+  "Handle additional optional argument COUNT."
+  :extended t
+  (let ((files (directory-files-and-attributes directory full match nosort id-format)))
+    (when (natnump count)
+      (setf (nthcdr count files) nil))
+    files))
 
 ;;;; xfaces.c
 
-(compat-defun color-values-from-color-spec (spec) ;; <OK>
+(compat-defun color-values-from-color-spec (spec) ;; <compat-tests:color-values-from-color-spec>
   "Parse color SPEC as a numeric color and return (RED GREEN BLUE).
 This function recognises the following formats for SPEC:
 
@@ -281,7 +216,7 @@ and BLUE, is normalized to have its value in [0,65535]."
 
 ;;;; Defined in simple.el
 
-(compat-defun make-separator-line (&optional length) ;; <OK>
+(compat-defun make-separator-line (&optional length) ;; <compat-tests:make-separator-line>
   "Make a string appropriate for usage as a visual separator line.
 If LENGTH is nil, use the window width."
     (concat (propertize (make-string (or length (1- (window-width))) ?-)
@@ -291,7 +226,7 @@ If LENGTH is nil, use the window width."
 ;;;; Defined in subr.el
 
 ;; FIXME Should handle multibyte regular expressions
-(compat-defun string-replace (fromstring tostring instring) ;; <OK>
+(compat-defun string-replace (fromstring tostring instring) ;; <compat-tests:string-replace>
   "Replace FROMSTRING with TOSTRING in INSTRING each time it occurs."
   (when (equal fromstring "")
     (signal 'wrong-length-argument '(0)))
@@ -301,13 +236,13 @@ If LENGTH is nil, use the window width."
      tostring instring
      t t)))
 
-(compat-defun always (&rest _arguments) ;; <OK>
+(compat-defun always (&rest _arguments) ;; <compat-tests:always>
   "Do nothing and return t.
 This function accepts any number of ARGUMENTS, but ignores them.
 Also see `ignore'."
   t)
 
-(compat-defun insert-into-buffer (buffer &optional start end) ;; <OK>
+(compat-defun insert-into-buffer (buffer &optional start end) ;; <compat-tests:insert-into-buffer>
   "Insert the contents of the current buffer into BUFFER.
 If START/END, only insert that region from the current buffer.
 Point in BUFFER will be placed after the inserted text."
@@ -315,7 +250,7 @@ Point in BUFFER will be placed after the inserted text."
     (with-current-buffer buffer
       (insert-buffer-substring current start end))))
 
-(compat-defun replace-string-in-region (string replacement &optional start end) ;; <OK>
+(compat-defun replace-string-in-region (string replacement &optional start end) ;; <compat-tests:replace-string-in-region>
   "Replace STRING with REPLACEMENT in the region from START to END.
 The number of replaced occurrences are returned, or nil if STRING
 doesn't exist in the region.
@@ -344,7 +279,7 @@ Comparisons and replacements are done with fixed case."
         (and (not (zerop matches))
              matches)))))
 
-(compat-defun replace-regexp-in-region (regexp replacement &optional start end) ;; <OK>
+(compat-defun replace-regexp-in-region (regexp replacement &optional start end) ;; <compat-tests:replace-regexp-in-region>
   "Replace REGEXP with REPLACEMENT in the region from START to END.
 The number of replaced occurrences are returned, or nil if REGEXP
 doesn't exist in the region.
@@ -380,7 +315,7 @@ REPLACEMENT can use the following special elements:
         (and (not (zerop matches))
              matches)))))
 
-(compat-defun buffer-local-boundp (symbol buffer) ;; <OK>
+(compat-defun buffer-local-boundp (symbol buffer) ;; <compat-tests:buffer-local-boundp>
   "Return non-nil if SYMBOL is bound in BUFFER.
 Also see `local-variable-p'."
   (catch 'fail
@@ -389,7 +324,7 @@ Also see `local-variable-p'."
       (void-variable nil (throw 'fail nil)))
     t))
 
-(compat-defmacro with-existing-directory (&rest body) ;; <OK>
+(compat-defmacro with-existing-directory (&rest body) ;; <compat-tests:with-existing-directory>
   "Execute BODY with `default-directory' bound to an existing directory.
 If `default-directory' is already an existing directory, it's not changed."
   (declare (indent 0) (debug t))
@@ -405,7 +340,7 @@ If `default-directory' is already an existing directory, it's not changed."
               "/")))
      ,@body))
 
-(compat-defmacro dlet (binders &rest body) ;; <OK>
+(compat-defmacro dlet (binders &rest body) ;; <compat-tests:dlet>
   "Like `let' but using dynamic scoping."
   (declare (indent 1) (debug let))
   `(let (_)
@@ -414,7 +349,7 @@ If `default-directory' is already an existing directory, it's not changed."
                binders)
      (let ,binders ,@body)))
 
-(compat-defun ensure-list (object) ;; <OK>
+(compat-defun ensure-list (object) ;; <compat-tests:ensure-list>
   "Return OBJECT as a list.
 If OBJECT is already a list, return OBJECT itself.  If it's
 not a list, return a one-element list containing OBJECT."
@@ -422,11 +357,15 @@ not a list, return a one-element list containing OBJECT."
       object
     (list object)))
 
-(compat-defalias subr-primitive-p subrp) ;; <OK>
+(compat-defalias subr-primitive-p subrp) ;; <compat-tests:subr-primitive-p>
+
+;;;; Defined in data.c
+
+(compat-defalias subr-native-elisp-p ignore) ;; <compat-tests:subr-native-elisp-p>
 
 ;;;; Defined in subr-x.el
 
-(compat-defun string-clean-whitespace (string) ;; <OK>
+(compat-defun string-clean-whitespace (string) ;; <compat-tests:string-clean-whitespace>
   "Clean up whitespace in STRING.
 All sequences of whitespaces in STRING are collapsed into a
 single space character, and leading/trailing whitespace is
@@ -438,7 +377,7 @@ removed."
      (replace-regexp-in-string
       blank " " string))))
 
-(compat-defun string-fill (string length) ;; <OK>
+(compat-defun string-fill (string length) ;; <compat-tests:string-fill>
   "Clean up whitespace in STRING.
 All sequences of whitespaces in STRING are collapsed into a
 single space character, and leading/trailing whitespace is
@@ -451,12 +390,7 @@ removed."
       (fill-region (point-min) (point-max)))
     (buffer-string)))
 
-(compat-defun string-lines (string &optional omit-nulls) ;; <OK>
-  "Split STRING into a list of lines.
-If OMIT-NULLS, empty lines will be removed from the results."
-  (split-string string "\n" omit-nulls))
-
-(compat-defun string-pad (string length &optional padding start) ;; <OK>
+(compat-defun string-pad (string length &optional padding start) ;; <compat-tests:string-pad>
   "Pad STRING to LENGTH using PADDING.
 If PADDING is nil, the space character is used.  If not nil, it
 should be a character.
@@ -478,13 +412,13 @@ the string."
               (and (not start)
                    (make-string pad-length (or padding ?\s)))))))
 
-(compat-defun string-chop-newline (string) ;; <OK>
+(compat-defun string-chop-newline (string) ;; <compat-tests:string-chop-newline>
   "Remove the final newline (if any) from STRING."
   (if (and (>= (length string) 1) (= (aref string (1- (length string))) ?\n))
       (substring string 0 -1)
     string))
 
-(compat-defmacro named-let (name bindings &rest body) ;; <OK>
+(compat-defmacro named-let (name bindings &rest body) ;; <compat-tests:named-let>
   "Looping construct taken from Scheme.
 Like `let', bind variables in BINDINGS and then evaluate BODY,
 but with the twist that BODY can evaluate itself recursively by
@@ -560,10 +494,9 @@ as the new values of the bound variables in the recursive invocation."
                             sets))
                     (cons 'setq (apply #'nconc (nreverse sets)))))
                  (`(throw ',quit ,expr))))))
-      (let ((tco-body (funcall tco (macroexpand-all (macroexp-progn body)))))
-        (when tco-body
-          (setq body `((catch ',quit
-                         (while t (let ,rargs ,@(macroexp-unprogn tco-body))))))))
+      (when-let ((tco-body (funcall tco (macroexpand-all (macroexp-progn body)))))
+        (setq body `((catch ',quit
+                       (while t (let ,rargs ,@(macroexp-unprogn tco-body)))))))
       (let ((expand (macroexpand-all (macroexp-progn body) (list (cons name macro)))))
         (if total-tco
             `(let ,bindings ,expand)
@@ -573,7 +506,7 @@ as the new values of the bound variables in the recursive invocation."
 
 ;;;; Defined in files.el
 
-(compat-defun file-name-with-extension (filename extension) ;; <OK>
+(compat-defun file-name-with-extension (filename extension) ;; <compat-tests:file-name-with-extension>
   "Set the EXTENSION of a FILENAME.
 The extension (in a file name) is the part that begins with the last \".\".
 
@@ -595,7 +528,7 @@ See also `file-name-sans-extension'."
      (t
       (concat (file-name-sans-extension filename) "." extn)))))
 
-(compat-defun directory-empty-p (dir) ;; <UNTESTED>
+(compat-defun directory-empty-p (dir) ;; <compat-tests:directory-empty-p>
   "Return t if DIR names an existing directory containing no other files.
 Return nil if DIR does not name a directory, or if there was
 trouble determining whether DIR is a directory or empty.
@@ -605,7 +538,7 @@ See `file-symlink-p' to distinguish symlinks."
   (and (file-directory-p dir)
        (null (directory-files dir nil directory-files-no-dot-files-regexp t))))
 
-(compat-defun file-modes-number-to-symbolic (mode &optional filetype) ;; <OK>
+(compat-defun file-modes-number-to-symbolic (mode &optional filetype) ;; <compat-tests:file-modes-number-to-symbolic>
   "Return a string describing a file's MODE.
 For instance, if MODE is #o700, then it produces `-rwx------'.
 FILETYPE if provided should be a character denoting the type of file,
@@ -643,7 +576,7 @@ the leading `-' char."
        (if (zerop (logand   1 mode)) ?- ?x)
      (if (zerop (logand   1 mode)) ?T ?t))))
 
-(compat-defun file-backup-file-names (filename) ;; <UNTESTED>
+(compat-defun file-backup-file-names (filename) ;; <compat-tests:file-backup-file-names>
   "Return a list of backup files for FILENAME.
 The list will be sorted by modification time so that the most
 recent files are first."
@@ -662,7 +595,7 @@ recent files are first."
           (push candidate files))))
     (sort files #'file-newer-than-file-p)))
 
-(compat-defun make-lock-file-name (filename) ;; <OK>
+(compat-defun make-lock-file-name (filename) ;; <compat-tests:make-lock-file-name>
   "Make a lock file name for FILENAME.
 This prepends \".#\" to the non-directory part of FILENAME, and
 doesn't respect `lock-file-name-transforms', as Emacs 28.1 and
@@ -672,20 +605,9 @@ onwards does."
     ".#" (file-name-nondirectory filename))
    (file-name-directory filename)))
 
-;;;; Defined in files-x.el
-
-(declare-function tramp-tramp-file-p "tramp" (name))
-
-(compat-defun null-device () ;; <UNTESTED>
-  "Return the best guess for the null device."
-  (require 'tramp)
-  (if (tramp-tramp-file-p default-directory)
-      "/dev/null"
-    null-device))
-
 ;;;; Defined in minibuffer.el
 
-(compat-defun format-prompt (prompt default &rest format-args) ;; <OK>
+(compat-defun format-prompt (prompt default &rest format-args) ;; <compat-tests:format-prompt>
   "Format PROMPT with DEFAULT.
 If FORMAT-ARGS is nil, PROMPT is used as a plain string.  If
 FORMAT-ARGS is non-nil, PROMPT is used as a format control
@@ -710,13 +632,56 @@ is included in the return value."
                   default)))
    ": "))
 
-;;;; Defined in windows.el
+;;;; Defined in faces.el
 
-(compat-defun count-windows (&optional minibuf all-frames) ;; <UNTESTED>
-  "Handle optional argument ALL-FRAMES.
-If ALL-FRAMES is non-nil, count the windows in all frames instead
-just the selected frame."
-  :explicit t
+(compat-defvar color-luminance-dark-limit 0.325 ;; <compat-tests:color-dark-p>
+  "The relative luminance below which a color is considered \"dark\".
+A \"dark\" color in this sense provides better contrast with white
+than with black; see `color-dark-p'.
+This value was determined experimentally."
+  :constant t)
+
+(compat-defun color-dark-p (rgb) ;; <compat-tests:color-dark-p>
+  "Whether RGB is more readable against white than black.
+RGB is a 3-element list (R G B), each component in the range [0,1].
+This predicate can be used both for determining a suitable (black or white)
+contrast color with RGB as background and as foreground."
+  (unless (<= 0 (apply #'min rgb) (apply #'max rgb) 1)
+    (error "RGB components %S not in [0,1]" rgb))
+  ;; Compute the relative luminance after gamma-correcting (assuming sRGB),
+  ;; and compare to a cut-off value determined experimentally.
+  ;; See https://en.wikipedia.org/wiki/Relative_luminance for details.
+  (let* ((sr (nth 0 rgb))
+         (sg (nth 1 rgb))
+         (sb (nth 2 rgb))
+         ;; Gamma-correct the RGB components to linear values.
+         ;; Use the power 2.2 as an approximation to sRGB gamma;
+         ;; it should be good enough for the purpose of this function.
+         (r (expt sr 2.2))
+         (g (expt sg 2.2))
+         (b (expt sb 2.2))
+         (y (+ (* r 0.2126) (* g 0.7152) (* b 0.0722))))
+    (< y color-luminance-dark-limit)))
+
+;;;; Defined in window.el
+
+(compat-defmacro with-window-non-dedicated (window &rest body) ;; <compat-tests:with-window-non-dedicated>
+  "Evaluate BODY with WINDOW temporarily made non-dedicated.
+If WINDOW is nil, use the selected window.  Return the value of
+the last form in BODY."
+  (declare (indent 1) (debug t))
+  (let ((window-dedicated-sym (gensym))
+        (window-sym (gensym)))
+    `(let* ((,window-sym (window-normalize-window ,window t))
+            (,window-dedicated-sym (window-dedicated-p ,window-sym)))
+       (set-window-dedicated-p ,window-sym nil)
+       (unwind-protect
+           (progn ,@body)
+         (set-window-dedicated-p ,window-sym ,window-dedicated-sym)))))
+
+(compat-defun count-windows (&optional minibuf all-frames) ;; <compat-tests:count-windows>
+  "Handle optional argument ALL-FRAMES."
+  :extended t
   (if all-frames
       (let ((sum 0))
         (dolist (frame (frame-list))
@@ -727,18 +692,48 @@ just the selected frame."
 
 ;;;; Defined in thingatpt.el
 
-(compat-defun thing-at-mouse (event thing &optional no-properties) ;; <UNTESTED>
+(compat-defun thing-at-mouse (event thing &optional no-properties) ;; <compat-tests:thing-at-mouse>
   "Return the THING at mouse click.
 Like `thing-at-point', but tries to use the event
 where the mouse button is clicked to find a thing nearby."
-  :feature thingatpt
+  ;; No :feature specified, since the function is autoloaded.
   (save-excursion
     (mouse-set-point event)
     (thing-at-point thing no-properties)))
 
+(compat-defun bounds-of-thing-at-mouse (event thing) ;; <compat-tests:thing-at-mouse>
+  "Determine start and end locations for THING at mouse click given by EVENT.
+Like `bounds-of-thing-at-point', but tries to use the position in EVENT
+where the mouse button is clicked to find the thing nearby."
+  ;; No :feature specified, since the function is autoloaded.
+  (save-excursion
+    (mouse-set-point event)
+    (bounds-of-thing-at-point thing)))
+
+;;;; Defined in mouse.el
+
+(compat-defun mark-thing-at-mouse (click thing) ;; <compat-tests:thing-at-mouse>
+  "Activate the region around THING found near the mouse CLICK."
+  (when-let ((bounds (bounds-of-thing-at-mouse click thing)))
+    (goto-char (if mouse-select-region-move-to-beginning
+                   (car bounds) (cdr bounds)))
+    (push-mark (if mouse-select-region-move-to-beginning
+                   (cdr bounds) (car bounds))
+               t 'activate)))
+
 ;;;; Defined in macroexp.el
 
-(compat-defun macroexp-file-name () ;; <OK>
+(compat-defun macroexp-warn-and-return (msg form &optional _category _compile-only _arg) ;; <compat-tests:macroexp-warn-and-return>
+  "Return code equivalent to FORM labeled with warning MSG.
+CATEGORY is the category of the warning, like the categories that
+can appear in `byte-compile-warnings'.
+COMPILE-ONLY non-nil means no warning should be emitted if the code
+is executed without being compiled first.
+ARG is a symbol (or a form) giving the source code position for the message.
+It should normally be a symbol with position and it defaults to FORM."
+  (macroexp--warn-and-return msg form))
+
+(compat-defun macroexp-file-name () ;; <compat-tests:macroexp-file-name>
   "Return the name of the file from which the code comes.
 Returns nil when we do not know.
 A non-nil result is expected to be reliable when called from a macro in order
@@ -751,7 +746,7 @@ Other uses risk returning non-nil value that point to the wrong file."
 
 ;;;; Defined in env.el
 
-(compat-defmacro with-environment-variables (variables &rest body) ;; <OK>
+(compat-defmacro with-environment-variables (variables &rest body) ;; <compat-tests:with-environment-variables>
   "Set VARIABLES in the environent and execute BODY.
 VARIABLES is a list of variable settings of the form (VAR VALUE),
 where VAR is the name of the variable (a string) and VALUE
@@ -769,22 +764,43 @@ The previous values will be be restored upon exit."
 
 ;;;; Defined in time-data.el
 
-(compat-defun decoded-time-period (time) ;; <OK>
+(compat-defun decoded-time-period (time) ;; <compat-tests:decoded-time-period>
   "Interpret DECODED as a period and return its length in seconds.
 For computational purposes, years are 365 days long and months
 are 30 days long."
   :feature time-date
-  ;; Inlining the definitions from compat-27
-  (+ (if (consp (nth 0 time))
-         ;; Fractional second.
-         (/ (float (car (nth 0 time)))
-            (cdr (nth 0 time)))
-       (or (nth 0 time) 0))
-     (* (or (nth 1 time) 0) 60)
-     (* (or (nth 2 time) 0) 60 60)
-     (* (or (nth 3 time) 0) 60 60 24)
-     (* (or (nth 4 time) 0) 60 60 24 30)
-     (* (or (nth 5 time) 0) 60 60 24 365)))
+  (+ (if (consp (decoded-time-second time))
+         (/ (float (car (decoded-time-second time)))
+            (cdr (decoded-time-second time)))
+       (or (decoded-time-second time) 0))
+     (* (or (decoded-time-minute time) 0) 60)
+     (* (or (decoded-time-hour time) 0) 60 60)
+     (* (or (decoded-time-day time) 0) 60 60 24)
+     (* (or (decoded-time-month time) 0) 60 60 24 30)
+     (* (or (decoded-time-year time) 0) 60 60 24 365)))
+
+;;;; Defined in doc.c
+
+(compat-defun text-quoting-style () ;; <compat-tests:text-quoting-style>
+  "Return the current effective text quoting style.
+If the variable `text-quoting-style' is `grave', `straight' or
+`curve', just return that value.  If it is nil (the default), return
+`grave' if curved quotes cannot be displayed (for instance, on a
+terminal with no support for these characters), otherwise return
+`quote'.  Any other value is treated as `grave'.
+
+Note that in contrast to the variable `text-quoting-style', this
+function will never return nil."
+  (cond
+   ((memq text-quoting-style '(grave straight curve))
+    text-quoting-style)
+   ((not text-quoting-style) 'grave)
+   (t 'curve)))
+
+;;;; Defined in button.el
+
+;; Obsolete Alias since 29
+(compat-defalias button-buttonize buttonize :obsolete t) ;; <compat-tests:button-buttonize>
 
 (provide 'compat-28)
 ;;; compat-28.el ends here

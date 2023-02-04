@@ -19,10 +19,24 @@
 
 ;; Tests for compatibility functions from compat.el.
 ;;
-;; Note that not all functions have tests yet.  Grep the Compat code for
-;; <UNTESTED> labels.  If you intend to use a function, which doesn't have
-;; tests yet, please contribute tests here.  NO GUARANTEES ARE MADE FOR
-;; FUNCTIONS WITHOUT TESTS.
+;; Note that all functions are covered by tests. When new functions are
+;; added to Compat, they must come with test coverage!
+
+;; Functions are marked with a link to the testsuite.  The link type
+;; `compat-tests' must be registered first by evaluating the following
+;; code.  If you intend to work on the test suite you can add this code to
+;; your init.el.
+;;
+;; (require 'ol)
+;; (org-link-set-parameters
+;;  "compat-tests"
+;;  :follow
+;;  (lambda (link _)
+;;    (org-link-open-from-string
+;;     (format "[[file:compat-tests.el::ert-deftest %s ()]]" link))))
+;;
+;;  You can then jump to the links with the command
+;;  `org-open-at-point-global', ideally bound to a convenient key.
 
 ;; The tests are written in a simple, explicit style.  Please inspect the
 ;; tests in order to find out the supported calling conventions.  In
@@ -30,21 +44,40 @@
 ;; calling convention or behavior changed between Emacs versions.
 
 ;; The functions tested here are guaranteed to work on the Emacs versions
-;; tested by continuous integration. This includes 24.4, 24.5, 25.1, 25.2,
-;; 25.3, 26.1, 26.2, 26.3, 27.1, 27.2, 28.1, 28.2 and the current Emacs
-;; master branch.
+;; tested by continuous integration.  This includes 24.4, 24.5, 25.1, 25.2,
+;; 25.3, 26.1, 26.2, 26.3, 27.1, 27.2, 28.1, 28.2, 29.1 and the current
+;; Emacs master branch.
 
 ;;; Code:
 
-(require 'ert)
 (require 'compat)
+(require 'ert-x)
 (require 'subr-x)
 (require 'time-date)
 (require 'image)
 (require 'text-property-search nil t)
 
+;; Setup tramp mock
+(require 'tramp)
+(add-to-list
+ 'tramp-methods
+ '("mock"
+   (tramp-login-program      "sh")
+   (tramp-login-args         (("-i")))
+   (tramp-direct-async       ("-c"))
+   (tramp-remote-shell       "/bin/sh")
+   (tramp-remote-shell-args  ("-c"))
+   (tramp-connection-timeout 10)))
+(add-to-list
+ 'tramp-default-host-alist
+ `("\\`mock\\'" nil ,(system-name)))
+
 (defmacro should-equal (a b)
   `(should (equal ,a ,b)))
+
+(defmacro compat-tests--if (cond then &rest else)
+  (declare (indent 2))
+  (if (eval cond t) then (macroexp-progn else)))
 
 (ert-deftest compat-loaded-features ()
   (let ((version 0))
@@ -58,7 +91,120 @@
     (should sym)
     (should (symbolp sym))
     (setq list (funcall sym list "first" 1 #'string=))
-    (should (eq (compat-call plist-get list "first" #'string=) 1))))
+    (should-equal (compat-call plist-get list "first" #'string=) 1)))
+
+(defconst compat-tests--version (package-get-version))
+(ert-deftest package-get-version ()
+  (should (stringp compat-tests--version))
+  (should-equal 29 (car (version-to-list compat-tests--version))))
+
+(ert-deftest buffer-match-p ()
+  (let ((b "*compat-test-buffer*")
+        (child-mode (make-symbol "child"))
+        (parent-mode (make-symbol "parent")))
+    (put child-mode 'derived-mode-parent parent-mode)
+    (with-current-buffer (get-buffer-create b)
+      (setq major-mode child-mode))
+    (should (buffer-match-p t b))
+    (should-not (buffer-match-p nil b))
+    (should (buffer-match-p "compat" b))
+    (should (buffer-match-p #'always b))
+    (should-not (buffer-match-p #'ignore b))
+    (should (buffer-match-p `(derived-mode . ,parent-mode) b))
+    (should-not (buffer-match-p '(derived-mode . text-mode) b))
+    (should (buffer-match-p `(major-mode . ,child-mode) b))
+    (should-not (buffer-match-p '(major-mode . prog-mode) b))
+    (should (buffer-match-p '(not (major-mode . prog-mode)) b))
+    (should (buffer-match-p `(and (major-mode . ,child-mode) "compat" t) b))
+    (should (buffer-match-p `(or (major-mode . prog-mode) "foo" t) b))))
+
+(ert-deftest match-buffers ()
+  (let ((b1 (get-buffer-create "*compat-buffer1*"))
+        (b2 (get-buffer-create "*compat-buffer2*"))
+        (b3 (get-buffer-create "*compat-buffer3*"))
+        (m1 (make-symbol "mode1"))
+        (m2 (make-symbol "mode2"))
+        (m3 (make-symbol "mode3")))
+  (with-current-buffer b1 (setq major-mode m1))
+  (with-current-buffer b2 (setq major-mode m2))
+  (with-current-buffer b3 (setq major-mode m3))
+  (should-equal (list b2 b1)
+                (match-buffers `(or (major-mode . ,m1) (major-mode . ,m2))
+                               (list b1 b2 b3)))))
+
+(ert-deftest thing-at-mouse ()
+  (save-window-excursion
+    (with-temp-buffer
+      (let ((event `(mouse-1 (,(selected-window) 1 (0 . 0) 0))))
+        (set-window-buffer nil (current-buffer))
+        (insert "http://emacs.org/")
+        (goto-char (point-min))
+        (should-equal "http://emacs.org/" (thing-at-mouse event 'url))
+        (should-equal '(1 . 18) (bounds-of-thing-at-mouse event 'url))
+        (should-not (region-active-p))
+        (mark-thing-at-mouse event 'url)
+        (should-equal (point) 18)
+        (should-equal '((1 . 18)) (region-bounds))
+        (let ((mouse-select-region-move-to-beginning t))
+          (mark-thing-at-mouse event 'url))
+        (should-equal (point) 1)
+        (should-equal '((1 . 18)) (region-bounds))))))
+
+(ert-deftest dolist-with-progress-reporter ()
+  (let (y)
+    (should-equal
+     (dolist-with-progress-reporter (x '(1 2 3) y) "Reporter"
+       (push x y))
+     '(3 2 1)))
+  (let (y)
+    (should-equal
+     (dolist-with-progress-reporter
+         (x '(1 2 3) y) (make-progress-reporter "Reporter")
+       (push x y))
+     '(3 2 1))))
+
+(ert-deftest minibuffer-history-value ()
+  (let ((minibuffer-history-variable 'file-name-history)
+        (file-name-history '("a" "b" "c")))
+    (should-equal (minibuffer-history-value) '("a" "b" "c")))
+  (let ((file-name-history '("x" "y" "z")))
+    (should-equal
+     (catch 'compat-tests--exit
+       (minibuffer-with-setup-hook
+           (lambda ()
+             (message "%S" minibuffer-history-variable)
+             (throw 'compat-tests--exit (minibuffer-history-value)))
+         (let ((executing-kbd-macro t))
+           (completing-read "Prompt: " #'completion-file-name-table
+                            nil nil nil 'file-name-history))))
+     '("x" "y" "z"))))
+
+(ert-deftest with-minibuffer-selected-window ()
+  (let (ran)
+    (should-not (minibuffer-selected-window))
+    (should-not (with-minibuffer-selected-window
+                  (setq ran t)))
+    (should-not ran)
+    (unwind-protect
+        (progn
+          (advice-add #'minibuffer-selected-window :override #'selected-window)
+          (should-equal 'result (with-minibuffer-selected-window
+                                  (setq ran t)
+                                  'result))
+          (should ran))
+      (advice-remove #'minibuffer-selected-window #'selected-window))))
+
+(ert-deftest fixnump ()
+  (should (fixnump 0))
+  (should (fixnump most-negative-fixnum))
+  (should (fixnump most-positive-fixnum)))
+
+(ert-deftest bignump ()
+  (should-not (bignump 0))
+  (should-not (bignump most-negative-fixnum))
+  (should-not (bignump most-positive-fixnum))
+  (should-equal (bignump (1+ most-positive-fixnum)) (> emacs-major-version 26))
+  (should-equal (bignump (1- most-negative-fixnum)) (> emacs-major-version 26)))
 
 (ert-deftest buttonize ()
   (let ((b (buttonize "button" 'c 'd 'h)))
@@ -69,6 +215,14 @@
     (should-equal 'd (get-text-property 5 'button-data b))
     (should-equal 'h (get-text-property 0 'help-echo b))
     (should-equal 'h (get-text-property 5 'help-echo b))))
+
+(ert-deftest button-buttonize ()
+  (let ((b (with-no-warnings (button-buttonize "button" 'c 'd))))
+    (should-equal b "button")
+    (should-equal 'c (get-text-property 0 'action b))
+    (should-equal 'c (get-text-property 5 'action b))
+    (should-equal 'd (get-text-property 0 'button-data b))
+    (should-equal 'd (get-text-property 5 'button-data b))))
 
 (ert-deftest buttonize-region ()
   (with-temp-buffer
@@ -82,6 +236,16 @@
     (should-equal 'd (get-text-property 6 'button-data))
     (should-equal 'h (get-text-property 2 'help-echo))
     (should-equal 'h (get-text-property 6 'help-echo))))
+
+(ert-deftest with-narrowing ()
+  (with-temp-buffer
+    (insert "abc")
+    (with-narrowing 2 3 :locked 'foo
+      (should-equal "b" (buffer-string)))
+    (should-equal "abc" (buffer-string))
+    (with-narrowing 2 3
+                    (should-equal "b" (buffer-string)))
+    (should-equal "abc" (buffer-string))))
 
 (ert-deftest with-memoization ()
   (let ((x (cons nil nil)) y computed)
@@ -114,7 +278,8 @@
   (should-equal (length (make-separator-line 10)) 11)
   (should (string-suffix-p "\n" (make-separator-line 10)))
   (should (string-suffix-p "\n" (make-separator-line)))
-  (should-equal (replace-regexp-in-string "[^\n]" "" (make-separator-line)) "\n"))
+  (should-equal (replace-regexp-in-string
+                 "[^\n]" "" (make-separator-line)) "\n"))
 
 (ert-deftest pos-bol ()
   (with-temp-buffer
@@ -172,11 +337,29 @@
     (setf (image-property image :width) nil)
     (should-equal image '(image))))
 
+(ert-deftest read-answer ()
+  (let ((orig-re (symbol-function #'read-event))
+        (orig-rc (symbol-function #'read-char))
+        (orig-rm (symbol-function #'read-from-minibuffer)))
+    (unwind-protect
+        (dolist (test '(("Choose "
+                         ("first" ?a "first description")
+                         ("second" ?b "second description")
+                         ("third" ?c))
+                        ("Do it? " ("yes" ?y) ("no" ?n))))
+          (dolist (choice (cdr test))
+            (fset #'read-char (lambda (&rest _) (cadr choice)))
+            (fset #'read-event (lambda (&rest _) (cadr choice)))
+            (fset #'read-from-minibuffer (lambda (&rest _) (car choice)))
+            (should-equal (car choice) (read-answer (car test) (cdr test)))))
+      (fset #'read-event orig-re)
+      (fset #'read-char orig-rc)
+      (fset #'read-from-minibuffer orig-rm))))
+
 (ert-deftest read-multiple-choice ()
   (let ((orig-re (symbol-function #'read-event))
         (orig-rc (symbol-function #'read-char))
-        ;;(orig-cr completing-read-function)
-        )
+        (orig-cr completing-read-function))
     (unwind-protect
         (dolist (test '(("Choose"
                          (?a "first" "first description")
@@ -186,14 +369,24 @@
           (dolist (choice (cdr test))
             (fset #'read-char (lambda (&rest _) (car choice)))
             (fset #'read-event (lambda (&rest _) (car choice)))
-            ;; TODO long form support
-            ;;(setq completing-read-function (lambda (&rest _) (cadr choice)))
-            ;;(should-equal choice (read-multiple-choice (car test) (cdr test) nil nil 'long))
+            (setq completing-read-function (lambda (&rest _) (cadr choice)))
+            (should-equal choice (compat-call read-multiple-choice
+                                              (car test) (cdr test) nil nil 'long))
             (should-equal choice (read-multiple-choice (car test) (cdr test)))))
       (fset #'read-event orig-re)
       (fset #'read-char orig-rc)
-      ;;(setq completing-read-function orig-cr)
-      )))
+      (setq completing-read-function orig-cr))))
+
+(ert-deftest read-char-from-minibuffer ()
+  (let ((orig (symbol-function #'read-from-minibuffer)))
+    (unwind-protect
+        (progn
+          (fset #'read-from-minibuffer (lambda (&rest _) "a"))
+          (should-equal ?a (read-char-from-minibuffer
+                            "Prompt: " '(?a ?b ?c) 'read-char-history))
+          (should-equal ?a (read-char-from-minibuffer "Prompt: " '(?a ?b ?c)))
+          (should-equal ?a (read-char-from-minibuffer "Prompt: ")))
+      (fset #'read-from-minibuffer orig))))
 
 (ert-deftest with-environment-variables ()
   (let ((A "COMPAT_TESTS__VAR") (B "/foo/bar"))
@@ -201,6 +394,22 @@
     (with-environment-variables ((A B))
       (should-equal (getenv A) B))
     (should-not (getenv A))))
+
+(ert-deftest with-window-non-dedicated ()
+  (unwind-protect
+      (progn
+        (should-not (window-dedicated-p))
+        (set-window-dedicated-p nil t)
+        (should (window-dedicated-p))
+        (with-window-non-dedicated nil
+          (should-not (window-dedicated-p)))
+        (should (window-dedicated-p)))
+    (set-window-dedicated-p nil nil)))
+
+(ert-deftest count-windows ()
+  (should (fixnump (compat-call count-windows)))
+  (should (fixnump (compat-call count-windows t)))
+  (should (fixnump (compat-call count-windows t t))))
 
 (ert-deftest recenter ()
   (save-window-excursion
@@ -266,31 +475,62 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-x C-f") #'find-file)
     (define-key map (kbd "SPC") #'minibuffer-complete-word)
+    (define-key map (kbd "RET") #'exit-minibuffer)
+    (define-key map [remap exit-minibuffer] #'minibuffer-force-complete-and-exit)
     (define-key map (kbd "C-c") mode-specific-map)
     (define-key map (kbd "s-c") [?\C-c ?\C-c])
+    (define-key map [t] 'compat-default-command)
     map))
 (defvar compat-tests--map-2
   (let ((map (make-sparse-keymap)))
     (keymap-set map "C-x C-f" #'find-file)
     (keymap-set map "SPC" #'minibuffer-complete-word)
+    (keymap-set map "RET" #'exit-minibuffer)
+    (keymap-set map "<remap> <exit-minibuffer>" #'minibuffer-force-complete-and-exit)
     (keymap-set map "C-c" mode-specific-map)
     (keymap-set map "s-c" "C-c C-c")
+    (keymap-set map "<t>" 'compat-default-command)
     map))
 (defvar-keymap compat-tests--map-3
   "C-x C-f" #'find-file
   "SPC" #'minibuffer-complete-word
+  "RET" #'exit-minibuffer
+  "<remap> <exit-minibuffer>" #'minibuffer-force-complete-and-exit
   "C-c" mode-specific-map
-  "s-c" "C-c C-c")
+  "s-c" "C-c C-c"
+  "<t>" 'compat-default-command)
 (defvar compat-tests--map-4
   (define-keymap
     "C-x C-f" #'find-file
     "SPC" #'minibuffer-complete-word
+    "RET" #'exit-minibuffer
+    "<remap> <exit-minibuffer>" #'minibuffer-force-complete-and-exit
     "C-c" mode-specific-map
-    "s-c" "C-c C-c"))
+    "s-c" "C-c C-c"
+    "<t>" 'compat-default-command))
 (ert-deftest defvar-keymap ()
   (should-equal compat-tests--map-1 compat-tests--map-2)
   (should-equal compat-tests--map-1 compat-tests--map-3)
   (should-equal compat-tests--map-1 compat-tests--map-4))
+
+(ert-deftest keymap-set-after ()
+  (let ((map (make-sparse-keymap)))
+    (keymap-set-after map "d" 'd "a")
+    (keymap-set-after map "a" 'a)
+    (keymap-set-after map "b" 'b)
+    (keymap-set-after map "c" 'c)
+    (keymap-set-after map "d" 'd "b") ;; TODO the after argument has no effect?!
+    (should-equal map '(keymap (?a . a) (?b . b) (?c . c) (?d . d)))))
+
+(ert-deftest keymap-substitute ()
+  (let ((map (define-keymap
+               "C-x C-f" #'find-file
+               "s-f" #'find-file
+               "C-x b" #'switch-to-buffer)))
+    (keymap-substitute map #'find-file 'ffap)
+    (should-equal (keymap-lookup map "C-x b") #'switch-to-buffer)
+    (should-equal (keymap-lookup map "C-x C-f") 'ffap)
+    (should-equal (keymap-lookup map "s-f") 'ffap)))
 
 (ert-deftest key-parse ()
   (should-equal (key-parse "f") [?f])
@@ -506,10 +746,122 @@
   (should-not (key-valid-p "M-xx"))
   (should-not (key-valid-p "M-x<TAB>")))
 
-(defun compat-tests--function-put ())
-(ert-deftest function-put ()
-  (function-put #'compat-tests--function-put 'compat-test 42)
-  (should-equal 42 (function-get #'compat-tests--function-put 'compat-test)))
+(ert-deftest keymap-lookup ()
+  (should-not (keymap-lookup compat-tests--map-1 "C-x b"))
+  (should-equal (keymap-lookup compat-tests--map-1 "C-x C-f") #'find-file)
+  (should-equal (keymap-lookup compat-tests--map-1 "RET") #'exit-minibuffer)
+  (should-equal (keymap-lookup compat-tests--map-1 "C-c") mode-specific-map)
+  (should-equal (keymap-lookup compat-tests--map-1 "s-c") [?\C-c ?\C-c])
+  (should-not (keymap-lookup compat-tests--map-1 "x"))
+  (should-equal (keymap-lookup compat-tests--map-1 "x" t) 'compat-default-command))
+
+(ert-deftest keymap-local-lookup ()
+  (let ((orig (current-local-map)))
+    (unwind-protect
+        (progn
+          (use-local-map compat-tests--map-1)
+          (should-not (keymap-local-lookup "C-x b"))
+          (should-equal (keymap-local-lookup "C-x C-f") #'find-file)
+          (should-equal (keymap-lookup compat-tests--map-1 "RET" nil t) #'exit-minibuffer)
+          (should-equal (keymap-local-lookup "RET") #'minibuffer-force-complete-and-exit)
+          (should-equal (keymap-local-lookup "C-c") mode-specific-map)
+          (should-equal (keymap-local-lookup "s-c") [?\C-c ?\C-c])
+          (should-not (keymap-local-lookup "x"))
+          (should-equal (keymap-local-lookup "x" t) 'compat-default-command))
+      (use-local-map orig))))
+
+(ert-deftest keymap-local-set ()
+  (let ((orig (current-local-map)))
+    (unwind-protect
+        (progn
+          (use-local-map (make-sparse-keymap))
+          (should-not (keymap-local-lookup "s-c"))
+          (should-not (keymap-local-lookup "x"))
+          (keymap-local-set "s-c" 'test)
+          (keymap-local-set "<t>" 'default)
+          (should-equal (keymap-local-lookup "s-c") 'test)
+          (should-equal (keymap-local-lookup "x" t) 'default)
+          (should-not (keymap-local-lookup "x")))
+      (use-local-map orig))
+    (should-not (keymap-local-lookup "s-c"))))
+
+(ert-deftest keymap-global-set ()
+  (let ((orig (current-global-map)))
+    (unwind-protect
+        (progn
+          (use-global-map (make-sparse-keymap))
+          (should-not (keymap-global-lookup "s-c"))
+          (should-not (keymap-global-lookup "x"))
+          (keymap-global-set "s-c" 'test)
+          (keymap-global-set "<t>" 'default)
+          (should-equal (keymap-global-lookup "s-c") 'test)
+          (should-equal (keymap-global-lookup "x" t) 'default)
+          (should-not (keymap-global-lookup "x")))
+      (use-global-map orig))
+    (should-not (keymap-global-lookup "s-c"))))
+
+(ert-deftest keymap-global-lookup ()
+  (should-equal (keymap-global-lookup "C-x b") #'switch-to-buffer)
+  (should-equal (keymap-global-lookup "C-x C-f") #'find-file)
+  (should-equal (keymap-global-lookup "C-c") #'mode-specific-command-prefix))
+
+(ert-deftest keymap-unset ()
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\M-x" #'execute-extended-command)
+    (define-key map "\C-x\C-f" #'find-file)
+    (define-key map "\C-y" #'yank)
+    (keymap-unset map "M-x")
+    (keymap-unset map "C-x C-f")
+    (keymap-unset map "C-y")
+    (should-equal map '(keymap (25) (24 keymap (6)) (27 keymap (120)))))
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\M-x" #'execute-extended-command)
+    (define-key map "\C-x\C-f" #'find-file)
+    (define-key map "\C-y" #'yank)
+    (keymap-unset map "M-x" t)
+    (keymap-unset map "C-x C-f" t)
+    (keymap-unset map "C-y" t)
+    (should-equal map '(keymap (24 keymap) (27 keymap)))))
+
+(ert-deftest keymap-local-unset ()
+  (let ((map (make-sparse-keymap))
+        (orig (current-local-map)))
+    (unwind-protect
+        (progn
+          (use-local-map map)
+          (define-key map "\M-x" #'execute-extended-command)
+          (define-key map "\C-x\C-f" #'find-file)
+          (define-key map "\C-y" #'yank)
+          (keymap-local-unset "M-x")
+          (keymap-local-unset "C-x C-f" t)
+          (keymap-local-unset "C-y" t)
+          (should-equal (current-local-map) '(keymap (24 keymap) (27 keymap (120)))))
+      (use-local-map orig))))
+
+(ert-deftest keymap-global-unset ()
+  (let ((map (make-sparse-keymap))
+        (orig (current-global-map)))
+    (unwind-protect
+        (progn
+          (use-global-map map)
+          (define-key map "\M-x" #'execute-extended-command)
+          (define-key map "\C-x\C-f" #'find-file)
+          (define-key map "\C-y" #'yank)
+          (keymap-global-unset "M-x")
+          (keymap-global-unset "C-x C-f" t)
+          (keymap-global-unset "C-y" t)
+          (should-equal (current-global-map) '(keymap (24 keymap) (27 keymap (120)))))
+      (use-global-map orig))))
+
+(ert-deftest define-key ()
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\M-x" #'execute-extended-command)
+    (define-key map "\C-x\C-f" #'find-file)
+    (define-key map "\C-y" #'yank)
+    (compat-call define-key map "\M-x" nil t)
+    (compat-call define-key map "\C-x\C-f" nil t)
+    (compat-call define-key map "\C-y" nil t)
+    (should-equal map '(keymap (24 keymap) (27 keymap)))))
 
 (ert-deftest function-alias-p ()
   (defun compat-tests--alias-fun ())
@@ -536,6 +888,12 @@
                 nil)
   (should-error (ignore-error foo
                   (read ""))))
+
+(ert-deftest hash-table-empty-p ()
+  (should (hash-table-empty-p (make-hash-table)))
+  (let ((ht (make-hash-table)))
+    (puthash 'k 'v ht)
+    (should-not (hash-table-empty-p ht))))
 
 (ert-deftest thread-first ()
   (should-equal (thread-first (+ 40 2)) 42)
@@ -595,36 +953,132 @@
 (defvar compat-tests--local-b nil)
 (defvar compat-tests--local-c nil)
 (ert-deftest setq-local ()
-  (compat-call setq-local compat-tests--local-a 1 compat-tests--local-b 2 compat-tests--local-c 3)
+  (compat-call setq-local
+               compat-tests--local-a 1
+               compat-tests--local-b 2
+               compat-tests--local-c 3)
   (should-equal compat-tests--local-a 1)
   (should-equal compat-tests--local-b 2)
   (should-equal compat-tests--local-c 3))
 
+(defvar compat-tests--global)
+(defvar compat-tests--local)
+(defvar compat-tests--unexist)
+(ert-deftest buffer-local-set-state ()
+  (setq compat-tests--global 1)
+  (with-temp-buffer
+    (setq-local compat-tests--local 2)
+    (let ((state (buffer-local-set-state compat-tests--global 10
+                                         compat-tests--local 20
+                                         compat-tests--unexist 30)))
+      (should-equal compat-tests--global 10)
+      (should-equal compat-tests--local 20)
+      (should-equal compat-tests--unexist 30)
+      (buffer-local-restore-state state)
+      (should-equal compat-tests--global 1)
+      (should-equal compat-tests--local 2)
+      (should-not (boundp 'compat-tests--unexist)))))
+
 (ert-deftest gensym ()
-  (should (symbolp (gensym "compat")))
-  (should (string-prefix-p "compat" (symbol-name (gensym 'compat))))
-  (should (string-prefix-p "compat" (symbol-name (gensym "compat")))))
+  (let ((orig gensym-counter))
+    (should (integerp gensym-counter))
+    (should (symbolp (gensym "compat")))
+    (should (string-prefix-p "compat" (symbol-name (gensym 'compat))))
+    (should (string-prefix-p "compat" (symbol-name (gensym "compat"))))
+    (should-equal gensym-counter (+ orig 3))))
+
+(ert-deftest delete-line ()
+  (with-temp-buffer
+    (insert "first\nsecond\nthird\n")
+    (goto-char 7)
+    (delete-line)
+    (should-equal (buffer-string) "first\nthird\n")))
+
+(ert-deftest list-of-strings-p ()
+  (should-not (list-of-strings-p 1))
+  (should (list-of-strings-p nil))
+  (should (list-of-strings-p '("a" "b")))
+  (should-not (list-of-strings-p ["a" "b"]))
+  (should-not (list-of-strings-p '("a" nil "b")))
+  (should-not (list-of-strings-p '("a" "b" . "c"))))
+
+(ert-deftest plistp ()
+  (should (plistp '(:a a :b b)))
+  (should (plistp '(1 2 3 4)))
+  (should-not (plistp '(1 2 3)))
+  (should-not (plistp '(1 . 2)))
+  (should-not (plistp '(1 2 . 3)))
+  (should-not (let ((l (list 1 2 3)))
+                (setf (nthcdr 3 l) l)
+                (plistp l))))
 
 (ert-deftest plist-get ()
   (let (list)
     (setq list (compat-call plist-put list 'first 1))
     (setq list (compat-call plist-put list 'second 2))
     (setq list (compat-call plist-put list 'first 10))
-    (should (eq (compat-call plist-get list 'first) 10))
-    (should (eq (compat-call plist-get list 'second) 2))
+    (should-equal (compat-call plist-get list 'first) 10)
+    (should-equal (compat-call plist-get list 'second) 2)
     (should (compat-call plist-member list 'first))
     (should-not (compat-call plist-member list 'third)))
   (let (list)
     (setq list (compat-call plist-put list "first" 1 #'string=))
     (setq list (compat-call plist-put list "second" 2 #'string=))
     (setq list (compat-call plist-put list "first" 10 #'string=))
-    (should (eq (compat-call plist-get list "first" #'string=) 10))
-    (should (eq (compat-call plist-get list "second" #'string=) 2))
+    (should-equal (compat-call plist-get list "first" #'string=) 10)
+    (should-equal (compat-call plist-get list "second" #'string=) 2)
     (should (compat-call plist-member list "first" #'string=))
     (should-not (compat-call plist-member list "third" #'string=))))
 
 (ert-deftest garbage-collect-maybe ()
   (garbage-collect-maybe 10))
+
+(ert-deftest buffer-hash ()
+  (should-equal (sha1 "foo") "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33")
+  (should-equal (with-temp-buffer
+                   (insert "foo")
+                   (buffer-hash))
+                 (sha1 "foo"))
+  ;; This tests whether the presence of a gap in the middle of the
+  ;; buffer is handled correctly.
+  (should-equal (with-temp-buffer
+                   (insert "foo")
+                   (goto-char 2)
+                   (insert " ")
+                   (backward-delete-char 1)
+                   (buffer-hash))
+                 (sha1 "foo")))
+
+(ert-deftest with-buffer-unmodified-if-unchanged ()
+  (with-temp-buffer
+    (with-buffer-unmodified-if-unchanged
+      (insert "t"))
+    (should (buffer-modified-p)))
+
+  (with-temp-buffer
+    (with-buffer-unmodified-if-unchanged
+      (insert "t")
+      (delete-char -1))
+    (should-not (buffer-modified-p)))
+
+  ;; Shouldn't error.
+  (should
+   (with-temp-buffer
+     (with-buffer-unmodified-if-unchanged
+       (insert "t")
+       (delete-char -1)
+       (kill-buffer))))
+
+  (with-temp-buffer
+    (let ((outer (current-buffer)))
+      (with-temp-buffer
+        (let ((inner (current-buffer)))
+          (with-buffer-unmodified-if-unchanged
+            (insert "t")
+            (delete-char -1)
+            (set-buffer outer))
+          (with-current-buffer inner
+            (should-not (buffer-modified-p))))))))
 
 (ert-deftest insert-into-buffer ()
   ;; Without optional compat--arguments
@@ -634,7 +1088,7 @@
       (with-temp-buffer
         (insert "def")
         (insert-into-buffer other))
-      (should (string= (buffer-string) "abcdef"))))
+      (should-equal (buffer-string) "abcdef")))
   ;; With one optional argument
   (with-temp-buffer
     (let ((other (current-buffer)))
@@ -642,7 +1096,7 @@
       (with-temp-buffer
         (insert "def")
         (insert-into-buffer other 2))
-      (should (string= (buffer-string) "abcef"))))
+      (should-equal (buffer-string) "abcef")))
   ;; With two optional arguments
   (with-temp-buffer
     (let ((other (current-buffer)))
@@ -650,7 +1104,7 @@
       (with-temp-buffer
         (insert "def")
         (insert-into-buffer other 2 3))
-      (should (string= (buffer-string) "abce")))))
+      (should-equal (buffer-string) "abce"))))
 
 (ert-deftest bool-vector ()
   (should-equal (bool-vector) (bool-vector-not (bool-vector)))
@@ -689,23 +1143,23 @@
                 #'string-match-p)))
 
 (ert-deftest assoc-delete-all ()
-  (should-equal (list) (compat-call assoc-delete-all 0 (list)))
+  (should-equal (list) (assoc-delete-all 0 (list)))
   ;; Test `eq'
-  (should-equal '((1 . one)) (compat-call assoc-delete-all 0 (list (cons 1 'one))))
-  (should-equal '((1 . one) a) (compat-call assoc-delete-all 0 (list (cons 1 'one) 'a)))
-  (should-equal '((1 . one)) (compat-call assoc-delete-all 0 (list (cons 0 'zero) (cons 1 'one))))
-  (should-equal '((1 . one)) (compat-call assoc-delete-all 0 (list (cons 0 'zero) (cons 0 'zero) (cons 1 'one))))
-  (should-equal '((1 . one)) (compat-call assoc-delete-all 0 (list (cons 0 'zero) (cons 1 'one) (cons 0 'zero))))
-  (should-equal '((1 . one) a) (compat-call assoc-delete-all 0 (list (cons 0 'zero) (cons 1 'one) 'a  (cons 0 'zero))))
-  (should-equal '(a (1 . one)) (compat-call assoc-delete-all 0 (list 'a (cons 0 'zero) (cons 1 'one) (cons 0 'zero))))
+  (should-equal '((1 . one)) (assoc-delete-all 0 (list (cons 1 'one))))
+  (should-equal '((1 . one) a) (assoc-delete-all 0 (list (cons 1 'one) 'a)))
+  (should-equal '((1 . one)) (assoc-delete-all 0 (list (cons 0 'zero) (cons 1 'one))))
+  (should-equal '((1 . one)) (assoc-delete-all 0 (list (cons 0 'zero) (cons 0 'zero) (cons 1 'one))))
+  (should-equal '((1 . one)) (assoc-delete-all 0 (list (cons 0 'zero) (cons 1 'one) (cons 0 'zero))))
+  (should-equal '((1 . one) a) (assoc-delete-all 0 (list (cons 0 'zero) (cons 1 'one) 'a  (cons 0 'zero))))
+  (should-equal '(a (1 . one)) (assoc-delete-all 0 (list 'a (cons 0 'zero) (cons 1 'one) (cons 0 'zero))))
   ;; Test `equal'
-  (should-equal '(("one" . one)) (compat-call assoc-delete-all "zero" (list (cons "one" 'one))))
-  (should-equal '(("one" . one) a) (compat-call assoc-delete-all "zero" (list (cons "one" 'one) 'a)))
-  (should-equal '(("one" . one)) (compat-call assoc-delete-all "zero" (list (cons "zero" 'zero) (cons "one" 'one))))
-  (should-equal '(("one" . one)) (compat-call assoc-delete-all "zero" (list (cons "zero" 'zero) (cons "zero" 'zero) (cons "one" 'one))))
-  (should-equal '(("one" . one)) (compat-call assoc-delete-all "zero" (list (cons "zero" 'zero) (cons "one" 'one) (cons "zero" 'zero))))
-  (should-equal '(("one" . one) a) (compat-call assoc-delete-all "zero" (list (cons "zero" 'zero) (cons "one" 'one) 'a  (cons "zero" 'zero))))
-  (should-equal '(a ("one" . one)) (compat-call assoc-delete-all "zero" (list 'a (cons "zero" 'zero) (cons "one" 'one) (cons "zero" 'zero))))
+  (should-equal '(("one" . one)) (assoc-delete-all "zero" (list (cons "one" 'one))))
+  (should-equal '(("one" . one) a) (assoc-delete-all "zero" (list (cons "one" 'one) 'a)))
+  (should-equal '(("one" . one)) (assoc-delete-all "zero" (list (cons "zero" 'zero) (cons "one" 'one))))
+  (should-equal '(("one" . one)) (assoc-delete-all "zero" (list (cons "zero" 'zero) (cons "zero" 'zero) (cons "one" 'one))))
+  (should-equal '(("one" . one)) (assoc-delete-all "zero" (list (cons "zero" 'zero) (cons "one" 'one) (cons "zero" 'zero))))
+  (should-equal '(("one" . one) a) (assoc-delete-all "zero" (list (cons "zero" 'zero) (cons "one" 'one) 'a  (cons "zero" 'zero))))
+  (should-equal '(a ("one" . one)) (assoc-delete-all "zero" (list 'a (cons "zero" 'zero) (cons "one" 'one) (cons "zero" 'zero))))
   ;; Test custom predicate
   (should-equal '() (compat-call assoc-delete-all 0 (list (cons 1 'one)) #'/=))
   (should-equal '(a) (compat-call assoc-delete-all 0 (list (cons 1 'one) 'a) #'/=))
@@ -715,7 +1169,7 @@
   (should-equal '((0 . zero) a (0 . zero)) (compat-call assoc-delete-all 0 (list (cons 0 'zero) (cons 1 'one) 'a  (cons 0 'zero)) #'/=))
   (should-equal '(a (0 . zero) (0 . zero)) (compat-call assoc-delete-all 0 (list 'a (cons 0 'zero) (cons 1 'one) (cons 0 'zero)) #'/=)))
 
-(ert-deftest derived-mode-p ()
+(ert-deftest provided-derived-mode-p ()
   (let ((one (make-symbol "1"))
         (two (make-symbol "2"))
         (three (make-symbol "3"))
@@ -809,9 +1263,17 @@
     (should-equal 'l (cddadr xxxx))
     (should-equal 'h (cdddar xxxx))))
 
+(ert-deftest compiled-function-p ()
+  (should-not (compiled-function-p '(lambda (x) x)))
+  (should (compiled-function-p (symbol-function 'assq)))
+  (should (compiled-function-p (symbol-function 'identity))))
+
+(ert-deftest subr-native-elisp-p ()
+  (should-not (subr-native-elisp-p (symbol-function 'identity))))
+
 (ert-deftest subr-primitive-p ()
   (should (subr-primitive-p (symbol-function 'identity)))       ;function from fns.c
-  (unless (fboundp 'subr-native-elisp-p)
+  (when (< emacs-major-version 28)
     (should-not (subr-primitive-p (symbol-function 'match-string)))) ;function from subr.el
   (should-not (subr-primitive-p (symbol-function 'defun)))        ;macro from subr.el
   (should-not (subr-primitive-p nil)))
@@ -913,6 +1375,64 @@
   (should-equal t (always 1))                    ;; single argument
   (should-equal t (always 1 2 3 4)))             ;; multiple arguments
 
+(ert-deftest file-backup-file-names ()
+  (ert-with-temp-directory dir
+    (let ((file (file-name-concat dir "file")) backups)
+      (make-empty-file file)
+      (should (file-exists-p file))
+      (should-not (file-backup-file-names file))
+      (push (concat file "~") backups)
+      (make-empty-file (car backups))
+      (should-equal backups (file-backup-file-names file))
+      (push (concat file ".~1~") backups)
+      (make-empty-file (car backups))
+      (should-equal backups (sort (file-backup-file-names file) #'string<)))))
+
+(ert-deftest make-temp-file ()
+  (let ((file (compat-call make-temp-file "compat-tests" nil nil "test-content")))
+    (unwind-protect
+        (with-temp-buffer
+          (insert-file-contents file)
+          (should-equal "test-content" (buffer-string)))
+      (delete-file file))))
+
+(ert-deftest make-nearby-temp-file ()
+  (let ((file1 (make-nearby-temp-file "compat-tests"))
+        (file2 (make-nearby-temp-file "compat-tests" nil "suffix"))
+        (dir (make-nearby-temp-file "compat-tests" t)))
+    (unwind-protect
+        (progn
+          (should (string-suffix-p "suffix" file2))
+          (should (file-regular-p file1))
+          (should (file-regular-p file2))
+          (should (file-directory-p dir))
+          (should-equal (file-name-directory file1) temporary-file-directory)
+          (should-equal (file-name-directory file2) temporary-file-directory)
+          (should-equal (file-name-directory dir) temporary-file-directory))
+      (delete-file file1)
+      (delete-file file2)
+      (delete-directory dir))
+    ;; Tramp test (mock protocol)
+    (let* ((default-directory "/mock::/")
+           (file (make-nearby-temp-file "compat-tests")))
+      (unwind-protect
+          (should (string-match-p "\\`/mock:.*:/tmp/compat-tests" file))
+        (delete-file file)))))
+
+(ert-deftest executable-find ()
+  (should (member (executable-find "sh") '("/usr/bin/sh" "/bin/sh")))
+  (should (member (executable-find "ls") '("/usr/bin/ls" "/bin/ls")))
+  ;; Tramp test (mock protocol)
+  (let ((default-directory "/mock::/"))
+    (should (member (compat-call executable-find "sh" t) '("/usr/bin/sh" "/bin/sh")))
+    (should (member (compat-call executable-find "ls" t) '("/usr/bin/ls" "/bin/ls")))))
+
+(ert-deftest exec-path ()
+  (should-equal (exec-path) exec-path)
+  ;; Tramp test (mock protocol)
+  (let ((default-directory "/mock::/"))
+    (should (member "/bin" (exec-path)))))
+
 (ert-deftest with-existing-directory ()
   (let ((dir (make-temp-name "/tmp/not-exist-")))
     (let ((default-directory dir))
@@ -920,6 +1440,26 @@
     (with-existing-directory
       (should-not (equal dir default-directory))
       (should (file-exists-p default-directory)))))
+
+(ert-deftest temporary-file-directory ()
+  (should-equal (temporary-file-directory) temporary-file-directory)
+  (let ((default-directory "/mnt"))
+    (should-equal (temporary-file-directory) default-directory))
+  ;; Tramp test (mock protocol)
+  (let ((default-directory "/mock::/"))
+    (should (string-match-p "\\`/mock:.*:/tmp/?\\'" (temporary-file-directory)))))
+
+(ert-deftest directory-files ()
+  (should-not (compat-call directory-files "." nil nil nil 0))
+  (should (list-of-strings-p (compat-call directory-files "." nil nil nil 1)))
+  (should-equal 1 (length (compat-call directory-files "." nil nil nil 1)))
+  (should-equal 2 (length (compat-call directory-files "." nil nil nil 2))))
+
+(ert-deftest directory-files-and-attributes ()
+  (should-not (compat-call directory-files-and-attributes "." nil nil nil nil 0))
+  (should (consp (car (compat-call directory-files-and-attributes "." nil nil nil nil 1))))
+  (should-equal 1 (length (compat-call directory-files-and-attributes "." nil nil nil nil 1)))
+  (should-equal 2 (length (compat-call directory-files-and-attributes "." nil nil nil nil 2))))
 
 (ert-deftest directory-name-p ()
   (should (directory-name-p "/"))
@@ -934,6 +1474,22 @@
   (should-not (directory-name-p "dir/file"))
   (should (directory-name-p "dir/subdir/"))
   (should-not (directory-name-p "dir/subdir")))
+
+(ert-deftest directory-empty-p ()
+  (ert-with-temp-directory dir
+    (should (directory-empty-p dir))
+    (make-empty-file (file-name-concat dir "file"))
+    (should-not (directory-empty-p dir))
+    (delete-file (file-name-concat dir "file"))
+    (should (directory-empty-p dir))))
+
+(ert-deftest make-empty-file ()
+  (ert-with-temp-directory dir
+    (let ((file (file-name-concat dir "file")))
+      (should-not (file-exists-p file))
+      (make-empty-file file)
+      (should (file-exists-p file))
+      (should-equal 0 (file-attribute-size (file-attributes file))))))
 
 (ert-deftest mounted-file-systems ()
   (should-not (string-match-p mounted-file-systems "/etc/"))
@@ -956,6 +1512,27 @@
   (should-equal (expand-file-name "bar/.#b") (make-lock-file-name "bar/b"))
   (should-equal (expand-file-name "bar/.#foo") (make-lock-file-name "bar/foo")))
 
+(ert-deftest file-has-changed-p ()
+  (ert-with-temp-file file
+    (should (file-has-changed-p file))
+    (should-not (file-has-changed-p file))
+    (should-not (file-has-changed-p file))
+    (should (file-has-changed-p file 'tag1))
+    (should-not (file-has-changed-p file 'tag1))
+    (should-not (file-has-changed-p file 'tag1))
+    (with-temp-buffer
+      (insert "changed")
+      (write-region (point-min) (point-max) file))
+    (should (file-has-changed-p file))
+    (should-not (file-has-changed-p file))
+    (should-not (file-has-changed-p file))
+    (should (file-has-changed-p file 'tag1))
+    (should-not (file-has-changed-p file 'tag1))
+    (should-not (file-has-changed-p file 'tag1))
+    (should (file-has-changed-p file 'tag2))
+    (should-not (file-has-changed-p file 'tag2))
+    (should-not (file-has-changed-p file 'tag2))))
+
 (ert-deftest file-attribute-getters ()
   (let ((attrs '(type link-number user-id group-id access-time modification-time
                  status-change-time size modes unspecified inode-number device-number)))
@@ -977,6 +1554,10 @@
     (should-equal (file-attribute-collect attrs 'group-id 'user-id) '(g u))
     (should-equal (file-attribute-collect attrs 'size 'inode-number 'type) '(S i t))))
 
+(ert-deftest file-size-human-readable-iec ()
+  (should-equal "1 KiB" (file-size-human-readable-iec 1024))
+  (should-equal "2.1 MiB" (file-size-human-readable-iec 2223456)))
+
 (ert-deftest file-size-human-readable ()
   (should-equal "1000" (compat-call file-size-human-readable 1000))
   (should-equal "1k" (compat-call file-size-human-readable 1024))
@@ -985,7 +1566,7 @@
   (should-equal "1T" (compat-call file-size-human-readable (expt 1024 4)))
   (should-equal "1k" (compat-call file-size-human-readable 1000 'si))
   (should-equal "1KiB" (compat-call file-size-human-readable 1024 'iec))
-  (should-equal "1KiB" (compat-call file-size-human-readable 1024 'iec))
+  (should-equal "1__KiB" (compat-call file-size-human-readable 1024 'iec "__"))
   (should-equal "1 KiB" (compat-call file-size-human-readable 1024 'iec " "))
   (should-equal "1KiA" (compat-call file-size-human-readable 1024 'iec nil "A"))
   (should-equal "1 KiA" (compat-call file-size-human-readable 1024 'iec " " "A"))
@@ -1011,58 +1592,54 @@
   (should-equal "prwx------" (file-modes-number-to-symbolic #o10700))
   (should-equal "-rwx------" (file-modes-number-to-symbolic #o30700)))
 
-(ert-deftest file-name-absolute-p ()   ;assuming unix
-  (should (file-name-absolute-p "/"))
-  (should (file-name-absolute-p "/a"))
-  (should-not (file-name-absolute-p "a"))
-  (should-not (file-name-absolute-p "a/b"))
-  (should-not (file-name-absolute-p "a/b/"))
-  (should (file-name-absolute-p "~"))
-  (when (version< "27.1" emacs-version)
-    (should (file-name-absolute-p "~/foo"))
-    (should-not (file-name-absolute-p "~foo"))
-    (should-not (file-name-absolute-p "~foo/")))
-  (should (file-name-absolute-p "~root"))
-  (should (file-name-absolute-p "~root/"))
-  (should (file-name-absolute-p "~root/file")))
-
 (ert-deftest file-local-name ()
   (should-equal "" (file-local-name ""))
   (should-equal "foo" (file-local-name "foo"))
   (should-equal "/bar/foo" (file-local-name "/bar/foo"))
-  ;; These tests fails prior to Emacs 26, because /ssh:foo was a valid
+  ;; NOTE: These tests fails prior to Emacs 26, because /ssh:foo was a valid
   ;; TRAMP path back then.
-  ;; (should-equal "/ssh:foo" (file-local-name "/ssh:foo"))
-  ;; (should-equal "/ssh:/bar/foo" (file-local-name "/ssh:/bar/foo"))
+  (when (>= emacs-major-version 26)
+    (should-equal "/ssh:foo" (file-local-name "/ssh:foo"))
+    (should-equal "/ssh:/bar/foo" (file-local-name "/ssh:/bar/foo")))
   (should-equal "foo" (file-local-name "/ssh::foo"))
   (should-equal "/bar/foo" (file-local-name "/ssh::/bar/foo"))
   (should-equal ":foo" (file-local-name "/ssh:::foo"))
   (should-equal ":/bar/foo" (file-local-name "/ssh:::/bar/foo")))
 
 (ert-deftest file-name-quoted-p ()
-  (should-not (compat-call file-name-quoted-p ""))
-  (should (compat-call file-name-quoted-p "/:"))
-  (should-not (compat-call file-name-quoted-p "//:"))
-  (should (compat-call file-name-quoted-p "/::"))
-  (should-not (compat-call file-name-quoted-p "/ssh::"))
-  (should-not (compat-call file-name-quoted-p "/ssh::a"))
-  (should (compat-call file-name-quoted-p "/ssh::/:a"))
-  ;; These tests fails prior to Emacs 26, because /ssh:foo was a valid
+  (should-not (compat-call file-name-quoted-p "" t)) ;; top argument
+  (should (compat-call file-name-quoted-p "/:" t)) ;; top argument
+  (should-not (file-name-quoted-p ""))
+  (should (file-name-quoted-p "/:"))
+  (should-not (file-name-quoted-p "//:"))
+  (should (file-name-quoted-p "/::"))
+  (should-not (file-name-quoted-p "/ssh::"))
+  (should-not (file-name-quoted-p "/ssh::a"))
+  (should (file-name-quoted-p "/ssh::/:a"))
+  ;; NOTE: These tests fails prior to Emacs 26, because /ssh:foo was a valid
   ;; TRAMP path back then.
-  ;;
-  ;; (should-not (compat-call file-name-quoted-p "/ssh:/:a")))
-  )
+  (when (>= emacs-major-version 26)
+    (should-not (file-name-quoted-p "/ssh:/:a"))))
+
+(ert-deftest file-name-unquote ()
+  (should-equal "/" (compat-call file-name-unquote "/:" t)) ;; top argument
+  (should-equal ":"(compat-call file-name-unquote "/::" t)) ;; top argument
+  (should-equal "/" (file-name-unquote "/:/"))
+  (should-equal "/" (file-name-unquote "/:"))
+  (should-equal ":" (file-name-unquote  "/::")))
 
 (ert-deftest file-name-quote ()
-  (should-equal "/:" (compat-call file-name-quote ""))
-  (should-equal "/::"(compat-call file-name-quote  ":"))
-  (should-equal "/:/" (compat-call file-name-quote "/"))
-  (should-equal "/:" (compat-call file-name-quote "/:"))
-  (should-equal "/:a" (compat-call file-name-quote "a"))
-  (should-equal "/::a" (compat-call file-name-quote ":a"))
-  (should-equal "/:/a" (compat-call file-name-quote "/a"))
-  (should-equal "/:a" (compat-call file-name-quote "/:a"))
-  (should-equal (concat "/ssh:" (system-name) ":/:a") (compat-call file-name-quote "/ssh::a")))
+  (should-equal "/:" (compat-call file-name-quote "" t)) ;; top argument
+  (should-equal "/::"(compat-call file-name-quote  ":" t)) ;; top argument
+  (should-equal "/:" (file-name-quote ""))
+  (should-equal "/::"(file-name-quote  ":"))
+  (should-equal "/:/" (file-name-quote "/"))
+  (should-equal "/:" (file-name-quote "/:"))
+  (should-equal "/:a" (file-name-quote "a"))
+  (should-equal "/::a" (file-name-quote ":a"))
+  (should-equal "/:/a" (file-name-quote "/a"))
+  (should-equal "/:a" (file-name-quote "/:a"))
+  (should-equal (concat "/ssh:" (system-name) ":/:a") (file-name-quote "/ssh::a")))
 
 (ert-deftest file-name-concat ()
   (should-equal (file-name-concat "foo" "bar") "foo/bar")
@@ -1149,14 +1726,12 @@
 (ert-deftest replace-string-in-region ()
   (with-temp-buffer
     (insert "foo bar zot foobar")
-    (should (= (replace-string-in-region "foo" "new" (point-min) (point-max))
-               2))
+    (should-equal (replace-string-in-region "foo" "new" (point-min) (point-max)) 2)
     (should-equal (buffer-string) "new bar zot newbar"))
 
   (with-temp-buffer
     (insert "foo bar zot foobar")
-    (should (= (replace-string-in-region "foo" "new" (point-min) 14)
-               1))
+    (should-equal (replace-string-in-region "foo" "new" (point-min) 14) 1)
     (should-equal (buffer-string) "new bar zot foobar"))
 
   (with-temp-buffer
@@ -1165,8 +1740,7 @@
 
   (with-temp-buffer
     (insert "Foo bar zot foobar")
-    (should (= (replace-string-in-region "Foo" "new" (point-min))
-               1))
+    (should-equal (replace-string-in-region "Foo" "new" (point-min)) 1)
     (should-equal (buffer-string) "new bar zot foobar"))
 
   ;; There was a bug in the Emacs 28 implementation
@@ -1174,29 +1748,24 @@
   (unless (= emacs-major-version 28)
     (with-temp-buffer
       (insert "foo bar baz")
-      (should (= (replace-string-in-region "ba" "quux corge grault" (point-min))
-                 2))
+      (should-equal (replace-string-in-region "ba" "quux corge grault" (point-min)) 2)
       (should-equal (buffer-string)
                      "foo quux corge graultr quux corge graultz"))
 
     (with-temp-buffer
       (insert "foo bar bar")
-      (should (= (replace-string-in-region " bar" "" (point-min) 8)
-                 1))
-      (should-equal (buffer-string)
-                     "foo bar"))))
+      (should-equal (replace-string-in-region " bar" "" (point-min) 8) 1)
+      (should-equal (buffer-string) "foo bar"))))
 
 (ert-deftest replace-regexp-in-region ()
   (with-temp-buffer
     (insert "foo bar zot foobar")
-    (should (= (replace-regexp-in-region "fo+" "new" (point-min) (point-max))
-               2))
+    (should-equal (replace-regexp-in-region "fo+" "new" (point-min) (point-max)) 2)
     (should-equal (buffer-string) "new bar zot newbar"))
 
   (with-temp-buffer
     (insert "foo bar zot foobar")
-    (should (= (replace-regexp-in-region "fo+" "new" (point-min) 14)
-               1))
+    (should-equal (replace-regexp-in-region "fo+" "new" (point-min) 14) 1)
     (should-equal (buffer-string) "new bar zot foobar"))
 
   (with-temp-buffer
@@ -1205,8 +1774,7 @@
 
   (with-temp-buffer
     (insert "Foo bar zot foobar")
-    (should (= (replace-regexp-in-region "Fo+" "new" (point-min))
-               1))
+    (should-equal (replace-regexp-in-region "Fo+" "new" (point-min)) 1)
     (should-equal (buffer-string) "new bar zot foobar"))
 
   ;; There was a bug in the Emacs 28 implementation
@@ -1214,17 +1782,13 @@
   (unless (= emacs-major-version 28)
     (with-temp-buffer
       (insert "foo bar baz")
-      (should (= (replace-regexp-in-region "ba." "quux corge grault" (point-min))
-                 2))
-      (should-equal (buffer-string)
-                     "foo quux corge grault quux corge grault"))
+      (should-equal (replace-regexp-in-region "ba." "quux corge grault" (point-min)) 2)
+      (should-equal (buffer-string) "foo quux corge grault quux corge grault"))
 
     (with-temp-buffer
       (insert "foo bar bar")
-      (should (= (replace-regexp-in-region " bar" "" (point-min) 8)
-                 1))
-      (should-equal (buffer-string)
-                     "foo bar"))))
+      (should-equal (replace-regexp-in-region " bar" "" (point-min) 8) 1)
+      (should-equal (buffer-string) "foo bar"))))
 
 (ert-deftest string-split ()
   (should-equal '("a" "b" "c") (split-string "a b c"))
@@ -1274,11 +1838,24 @@
 
 (ert-deftest string-lines ()
   (should-equal '("a" "b" "c") (string-lines "a\nb\nc"))
-  ;; TODO behavior changed on Emacs master (Emacs version 30)
-  ;; (should-equal '("a" "b" "c" "") (string-lines "a\nb\nc\n"))
   (should-equal '("a" "b" "c") (string-lines "a\nb\nc\n" t))
+  (should-equal '("a" "b" "c") (string-lines "a\nb\n\nc\n" t))
   (should-equal '("abc" "bcd" "cde") (string-lines "abc\nbcd\ncde"))
-  (should-equal '(" abc" " bcd " "cde ") (string-lines " abc\n bcd \ncde ")))
+  (should-equal '(" abc" " bcd " "cde ") (string-lines " abc\n bcd \ncde "))
+
+  ;; NOTE: Behavior for trailing newline was different on Emacs 28
+  (compat-tests--if (= emacs-major-version 28)
+      (should-equal '("a" "b" "c" "") (string-lines "a\nb\nc\n"))
+    (should-equal '("a" "b" "c") (string-lines "a\nb\nc\n"))
+    (should-equal '("a\n" "\n" "b\n" "c\n") (string-lines "a\n\nb\nc\n" nil t))
+    (should-equal '("a\n" "b\n" "c\n") (string-lines "a\n\nb\nc\n" t t))
+    (should-equal '("a\n" "b\n" "c\n") (string-lines "a\nb\nc\n" nil t)))
+
+  ;; Compatibility function provides the Emacs 29 behavior regarding trailing newlines
+  (should-equal '("a" "b" "c") (compat-call string-lines "a\nb\nc\n"))
+  (should-equal '("a\n" "\n" "b\n" "c\n") (compat-call string-lines "a\n\nb\nc\n" nil t))
+  (should-equal '("a\n" "b\n" "c\n") (compat-call string-lines "a\n\nb\nc\n" t t))
+  (should-equal '("a\n" "b\n" "c\n") (compat-call string-lines "a\nb\nc\n" nil t)))
 
 (ert-deftest string-pad ()
   (should-equal "a   " (string-pad "a" 4))
@@ -1297,17 +1874,11 @@
 
 (ert-deftest string-distance ()
   (should-equal 3 (string-distance "kitten" "sitting"))    ;from wikipedia
-  (if (version<= "28" emacs-version) ;trivial examples
-      (should-equal 0 (string-distance "" ""))
-    ;; Up until Emacs 28, `string-distance' had a bug
-    ;; when comparing two empty strings. This was fixed
-    ;; in the following commit:
-    ;; https://git.savannah.gnu.org/cgit/emacs.git/commit/?id=c44190c
-    ;;
-    ;; TODO Therefore, we must make sure, that the test
-    ;; doesn't fail because of this bug:
-    ;; (should (= (string-distance "" "") 0))
-    )
+  ;; In Emacs 27, `string-distance' had a bug when comparing two empty
+  ;; strings. This was fixed in the following commit:
+  ;; https://git.savannah.gnu.org/cgit/emacs.git/commit/?id=c44190c
+  (when (/= emacs-major-version 27)
+    (should-equal 0 (string-distance "" "")))
   (should-equal 0 (string-distance "a" "a"))
   (should-equal 1 (string-distance "" "a"))
   (should-equal 1 (string-distance "b" "a"))
@@ -1456,12 +2027,10 @@
   ;; The `make-string' calls with three arguments have been replaced
   ;; here with the result of their evaluation, to avoid issues with
   ;; older versions of Emacs that only support two arguments.
-  (should-equal 5
-                 (string-search (make-string 2 130)
-                                ;; Per (concat "helló" (make-string 5 130 t) "bár")
-                                "hellóbár"))
-  (should-equal 5
-                  (string-search (make-string 2 127)
+  (should-equal 5 (string-search (make-string 2 130)
+                                 ;; Per (concat "helló" (make-string 5 130 t) "bár")
+                                 "hellóbár"))
+  (should-equal 5 (string-search (make-string 2 127)
                                  ;; Per (concat "helló" (make-string 5 127 t) "bár")
                                  "hellóbár"))
   (should-equal 1 (string-search "\377" "a\377ø"))
@@ -1479,7 +2048,7 @@
   (should-equal 2 (string-search "a\U00010f98z" "a\U00010f98a\U00010f98z"))
   (should-error (string-search "a" "abc" -1) :type '(args-out-of-range -1))
   (should-error (string-search "a" "abc" 4) :type '(args-out-of-range 4))
-  (should-error (string-search "a" "abc" 100000000000) :type '(args-out-of-range 100000000000))
+  (should-error (string-search "a" "abc" most-positive-fixnum) :type '(args-out-of-range most-positive-fixnum))
   (should-not (string-search "a" "aaa" 3))
   (should-not (string-search "aa" "aa" 1))
   (should-not (string-search "\0" ""))
@@ -1499,15 +2068,13 @@
   (should-not (string-search "\303\270" "\370"))
   (should-not (string-search (compat-tests--string-to-multibyte "\303\270") "\370"))
   (should-not (string-search "\303\270" (compat-tests--string-to-multibyte "\370")))
-  (should-not
-                  (string-search (compat-tests--string-to-multibyte "\303\270")
-                                 (compat-tests--string-to-multibyte "\370")))
+  (should-not (string-search (compat-tests--string-to-multibyte "\303\270")
+                             (compat-tests--string-to-multibyte "\370")))
   (should-not (string-search "\370" "\303\270"))
   (should-not (string-search (compat-tests--string-to-multibyte "\370") "\303\270"))
   (should-not (string-search "\370" (compat-tests--string-to-multibyte "\303\270")))
-  (should-not
-                 (string-search (compat-tests--string-to-multibyte "\370")
-                                (compat-tests--string-to-multibyte "\303\270")))
+  (should-not (string-search (compat-tests--string-to-multibyte "\370")
+                             (compat-tests--string-to-multibyte "\303\270")))
   (should-equal 3 (string-search "\303\270" "foo\303\270"))
   (when (version<= "27" emacs-version)
     ;; FIXME The commit a1f76adfb03c23bb4242928e8efe6193c301f0c1 in
@@ -1515,8 +2082,7 @@
     ;; raw bytes.  The compatibility functions should updated to
     ;; backport this behaviour.
     (should-equal 2 (string-search (compat-tests--string-to-multibyte "\377") "ab\377c"))
-    (should-equal 2
-                    (string-search (compat-tests--string-to-multibyte "o\303\270")
+    (should-equal 2 (string-search (compat-tests--string-to-multibyte "o\303\270")
                                    "foo\303\270"))))
 
 (ert-deftest string-replace ()
@@ -1563,6 +2129,10 @@
   (should-not (boundp 'compat-tests--dlet2)))
 
 (ert-deftest while-let ()
+  (let ((list '(1 2 3 4)) rev)
+    (while-let ((x (pop list)))
+      (push x rev))
+    (should-equal '(4 3 2 1) rev))
   (let ((first '(1 2 3 4)) (second '(a b c)) zipped)
     (while-let ((x (pop first)) (y (pop second)))
       (push (cons x y) zipped))
@@ -1591,10 +2161,6 @@
     "then" "else"))
   (should-equal "else"
    (if-let* (((= 5 6))) "then" "else")))
-
-(defmacro compat-tests--if (cond then &rest else)
-  (declare (indent 2))
-  (if cond then (macroexp-progn else)))
 
 (ert-deftest when-let ()
   ;; FIXME Broken on Emacs 25
@@ -1678,58 +2244,58 @@
    (and-let* (((= 5 6))) t)))
 
 (ert-deftest named-let ()
-  (should (= (named-let l ((i 0)) (if (= i 8) i (l (1+ i))))
-             8))
-  (should (= (named-let l ((i 0)) (if (= i 100000) i (l (1+ i))))
-             100000))
-  (should (= (named-let l ((i 0))
-               (cond
-                ((= i 100000) i)
-                ((= (mod i 2) 0)
-                 (l (+ i 2)))
-                ((l (+ i 3)))))
-             100000))
-  (should (= (named-let l ((i 0) (x 1)) (if (= i 8) x (l (1+ i) (* x 2))))
-             (expt 2 8)))
-  (should (eq (named-let lop ((x 1))
-                (if (> x 0)
-                    (condition-case nil
-                        (lop (1- x))
-                      (arith-error 'ok))
-                  (/ 1 x)))
-              'ok))
-  (should (eq (named-let lop ((n 10000))
-                (if (> n 0)
-                    (condition-case nil
-                        (/ n 0)
-                      (arith-error (lop (1- n))))
-                  'ok))
-              'ok))
-  (should (eq (named-let lop ((x nil))
-                (cond (x)
-                      (t 'ok)))
-              'ok))
-  (should (eq (named-let lop ((x 100000))
-                (cond ((= x 0) 'ok)
-                      ((lop (1- x)))))
-              'ok))
-  (should (eq (named-let lop ((x 100000))
-                (cond
-                 ((= x -1) nil)
-                 ((= x 0) 'ok)
-                 ((lop -1))
-                 ((lop (1- x)))))
-              'ok))
-  (should (eq (named-let lop ((x 10000))
-                (cond ((= x 0) 'ok)
-                      ((and t (lop (1- x))))))
-              'ok))
-  (should (eq (let ((b t))
-                (named-let lop ((i 0))
-                  (cond ((null i) nil) ((= i 10000) 'ok)
-                        ((lop (and (setq b (not b)) (1+ i))))
-                        ((lop (and (setq b (not b)) (1+ i)))))))
-              'ok)))
+  (should-equal (named-let l ((i 0)) (if (= i 8) i (l (1+ i))))
+                8)
+  (should-equal (named-let l ((i 0)) (if (= i 100000) i (l (1+ i))))
+                100000)
+  (should-equal (named-let l ((i 0))
+                  (cond
+                   ((= i 100000) i)
+                   ((= (mod i 2) 0)
+                    (l (+ i 2)))
+                   ((l (+ i 3)))))
+                100000)
+  (should-equal (named-let l ((i 0) (x 1)) (if (= i 8) x (l (1+ i) (* x 2))))
+                (expt 2 8))
+  (should-equal (named-let lop ((x 1))
+                  (if (> x 0)
+                      (condition-case nil
+                          (lop (1- x))
+                        (arith-error 'ok))
+                    (/ 1 x)))
+                'ok)
+  (should-equal (named-let lop ((n 10000))
+                  (if (> n 0)
+                      (condition-case nil
+                          (/ n 0)
+                        (arith-error (lop (1- n))))
+                    'ok))
+                'ok)
+  (should-equal (named-let lop ((x nil))
+                  (cond (x)
+                        (t 'ok)))
+                'ok)
+  (should-equal (named-let lop ((x 100000))
+                  (cond ((= x 0) 'ok)
+                        ((lop (1- x)))))
+                'ok)
+  (should-equal (named-let lop ((x 100000))
+                  (cond
+                   ((= x -1) nil)
+                   ((= x 0) 'ok)
+                   ((lop -1))
+                   ((lop (1- x)))))
+                'ok)
+  (should-equal (named-let lop ((x 10000))
+                  (cond ((= x 0) 'ok)
+                        ((and t (lop (1- x))))))
+                'ok)
+  (should-equal (let ((b t))
+                  (named-let lop ((i 0))
+                    (cond ((null i) nil) ((= i 10000) 'ok)
+                          ((lop (and (setq b (not b)) (1+ i))))
+                          ((lop (and (setq b (not b)) (1+ i)))))))
+                'ok))
 
 (ert-deftest alist-get ()
   ;; Fallback behaviour:
@@ -1761,82 +2327,46 @@
   (should-equal 'd (compat-call alist-get 2 '((1 . a) (2 . b) (3 . c)) 'd nil #'ignore)))
 
 (ert-deftest alist-get-gv ()
-  (let ((alist-1 (list (cons 1 "one")
-                       (cons 2 "two")
-                       (cons 3 "three")))
-        (alist-2 (list (cons "one" 1)
-                       (cons "two" 2)
-                       (cons "three" 3))))
+  (let ((alist (list (cons 1 "one")
+                     (cons 2 "two")
+                     (cons 3 "three"))))
+    (setf (alist-get 1 alist) "eins")
+    (should-equal (alist-get 1 alist) "eins")
+    (setf (alist-get 2 alist nil 'remove) nil)
+    (should-equal alist '((1 . "eins") (3 . "three"))))
+  (let ((alist (list (cons 1 "one")
+                     (cons 2 "two")
+                     (cons 3 "three"))))
+    (setf (compat-call alist-get 1 alist) "eins")
+    (should-equal (compat-call alist-get 1 alist) "eins")
+    (setf (compat-call alist-get 2 alist nil 'remove) nil)
+    (should-equal alist '((1 . "eins") (3 . "three"))))
+  (let ((alist (list (cons "one" 1)
+                     (cons "two" 2)
+                     (cons "three" 3))))
+    (setf (compat-call alist-get "one" alist nil nil #'string=) "eins")
+    (should-equal (compat-call alist-get "one" alist nil nil #'string=) "eins")
+    (should-equal alist '(("one" . "eins") ("two" . 2) ("three" . 3)))
+    (setf (compat-call alist-get "two" alist nil 'remove #'string=) nil)
+    (should-equal alist '(("one" . "eins") ("three" . 3)))))
 
-    (setf (compat-call alist-get 1 alist-1) "eins")
-    (should-equal (compat-call alist-get 1 alist-1) "eins")
-    (setf (compat-call alist-get 2 alist-1 nil 'remove) nil)
-    (should-equal alist-1 '((1 . "eins") (3 . "three")))
-    (setf (compat-call alist-get "one" alist-2 nil nil #'string=) "eins")
-    (should-equal (compat-call alist-get "one" alist-2 nil nil #'string=)
-                   "eins")))
+(ert-deftest plist-get-gv ()
+  (let ((plist '(1 "one" 2 "two" 3 "three")))
+    (setf (plist-get plist 1) "eins")
+    (should-equal (plist-get plist 1) "eins")
+    (setf (plist-get plist 2) nil)
+    (should-equal plist '(1 "eins" 2 nil 3 "three")))
+  (let ((plist '(1 "one" 2 "two" 3 "three")))
+    (setf (compat-call plist-get plist 1) "eins")
+    (should-equal (compat-call plist-get plist 1) "eins")
+    (setf (compat-call plist-get plist 2) nil)
+    (should-equal plist '(1 "eins" 2 nil 3 "three")))
+  (let ((plist '("one" 1 "two" 2 "three" 3)))
+    (setf (compat-call plist-get plist "one" #'string=) "eins")
+    (should-equal (compat-call plist-get plist "one" #'string=) "eins")
+    (should-equal plist '("one" "eins" "two" 2 "three" 3))))
 
-(ert-deftest json-serialize ()
-  (let ((input-1 '((:key . ["abc" 2]) (yek . t)))
-        (input-2 '(:key ["abc" 2] yek t))
-        ;; TODO fix broken test
-        ;;(input-3 (let ((ht (make-hash-table)))
-        ;;           (puthash "key" ["abc" 2] ht)
-        ;;           (puthash "yek" t ht)
-        ;;           ht))
-        )
-    (should-equal (json-serialize input-1)
-                   "{\":key\":[\"abc\",2],\"yek\":true}")
-    (should-equal (json-serialize input-2)
-                   "{\"key\":[\"abc\",2],\"yek\":true}")
-    (should (member (json-serialize input-2)
-                    '("{\"key\":[\"abc\",2],\"yek\":true}"
-                      "{\"yek\":true,\"key\":[\"abc\",2]}")))
-    ;; TODO fix broken test
-    ;; (should-equal (json-serialize input-3)
-    ;;                "{\"key\":[\"abc\",2],\"yek\":true}"))
-    (should-error (json-serialize '(("a" . 1)))
-                  :type '(wrong-type-argument symbolp "a"))
-    (should-error (json-serialize '("a" 1))
-                  :type '(wrong-type-argument symbolp "a"))
-    (should-error (json-serialize '("a" 1 2))
-                  :type '(wrong-type-argument symbolp "a"))
-    (should-error (json-serialize '(:a 1 2))
-                  :type '(wrong-type-argument consp nil))
-    (should-error (json-serialize
-                   (let ((ht (make-hash-table)))
-                     (puthash 'a 1 ht)
-                     ht))
-                  :type '(wrong-type-argument stringp a))))
-
-(ert-deftest json-parse-string ()
-  ;; TODO fix broken tests!
-  ;; (should-equal 0 (json-parse-string "0"))
-  ;; (should-equal 1 (json-parse-string "1"))
-  ;; (should-equal 0.5 (json-parse-string "0.5"))
-  ;; (should-equal 'foo (json-parse-string "null" :null-object 'foo))
-  (should-equal [1 2 3] (json-parse-string "[1,2,3]"))
-  (should-equal ["a" 2 3] (json-parse-string "[\"a\",2,3]"))
-  (should-equal [["a" 2] 3] (json-parse-string "[[\"a\",2],3]"))
-  (should-equal '(("a" 2) 3) (json-parse-string "[[\"a\",2],3]" :array-type 'list))
-  (should-equal ["false" t] (json-parse-string "[false, true]" :false-object "false"))
-  (let ((input "{\"key\":[\"abc\", 2], \"yek\": null}"))
-    (let ((obj (json-parse-string input :object-type 'alist)))
-      (should-equal (cdr (assq 'key obj)) ["abc" 2])
-      (should-equal (cdr (assq 'yek obj)) :null))
-    (let ((obj (json-parse-string input :object-type 'plist)))
-      (should-equal (plist-get obj :key) ["abc" 2])
-      (should-equal (plist-get obj :yek) :null))
-    (let ((obj (json-parse-string input)))
-      (should-equal (gethash "key" obj) ["abc" 2])
-      (should-equal (gethash "yek" obj) :null))))
-
-(ert-deftest json-insert ()
-  (with-temp-buffer
-    (json-insert '((:key . ["abc" 2]) (yek . t)))
-    (should-equal (buffer-string) "{\":key\":[\"abc\",2],\"yek\":true}")))
-
-(ert-deftest make-prop-match ()
+(ert-deftest prop-match ()
   (should (prop-match-p (make-prop-match)))
   (should (prop-match-p (make-prop-match :end 1)))
   (should (prop-match-p (make-prop-match :beginning 1 :end 2 :value 3)))
@@ -1892,6 +2422,12 @@
     (should-not (text-property-search-backward 'prop))
     (goto-char (point-max))
     (should-not (text-property-search-backward 'non-existant))))
+
+(ert-deftest color-dark-p ()
+  (should (color-dark-p '(0 0 0)))
+  (should (color-dark-p '(0.5 0.5 0.5)))
+  (should-not (color-dark-p '(0.5 0.7 0.5)))
+  (should-not (color-dark-p '(1 1 1 ))))
 
 (ert-deftest color-values-from-color-spec ()
   ;; #RGB notation
@@ -2008,6 +2544,25 @@
 (ert-deftest macroexp-file-name ()
   (should-equal (file-name-nondirectory (compat-tests--filename)) "compat-tests.el"))
 
+(ert-deftest macroexp-warn-and-return ()
+  (should-equal (macroexp-warn-and-return "test warning" '(some form)) '(some form)))
+
+(ert-deftest macroexp-parse-body ()
+  (should-equal '(((declare test)) . (a b c))
+                (macroexp-parse-body '((declare test) a b c)))
+  (should-equal '(((interactive)) . (a b c))
+                (macroexp-parse-body '((interactive) a b c)))
+  (should-equal '(((interactive) (cl-declare)) . (a b c))
+                (macroexp-parse-body '((interactive) (cl-declare) a b c))))
+
+(ert-deftest macroexp-quote ()
+  (should-equal nil (macroexp-quote nil))
+  (should-equal t (macroexp-quote t))
+  (should-equal :key (macroexp-quote :key))
+  (should-equal "str" (macroexp-quote "str"))
+  (should-equal ''sym (macroexp-quote 'sym))
+  (should-equal ''(1 2 3) (macroexp-quote '(1 2 3))))
+
 (ert-deftest macroexpand-1 ()
   (should-equal '(if a b c) (macroexpand-1 '(if a b c)))
   (should-equal '(if a (progn b)) (macroexpand-1 '(when a b)))
@@ -2045,7 +2600,7 @@
   ;; (should (time-equal-p (days-to-time 999.0) '(1317 2688 0 0)))
   )
 
-(ert-deftest decoded-time-getters ()
+(ert-deftest decoded-time ()
   (let ((time '(second minute hour day month year weekday dst zone)))
     (should-equal (decoded-time-second time) 'second)
     (should-equal (decoded-time-minute time) 'minute)
@@ -2055,7 +2610,25 @@
     (should-equal (decoded-time-year time) 'year)
     (should-equal (decoded-time-weekday time) 'weekday)
     (should-equal (decoded-time-dst time) 'dst)
-    (should-equal (decoded-time-zone time) 'zone)))
+    (should-equal (decoded-time-zone time) 'zone)
+    (setf (decoded-time-second time) 'SECOND)
+    (setf (decoded-time-minute time) 'MINUTE)
+    (setf (decoded-time-hour time) 'HOUR)
+    (setf (decoded-time-day time) 'DAY)
+    (setf (decoded-time-month time) 'MONTH)
+    (setf (decoded-time-year time) 'YEAR)
+    (setf (decoded-time-weekday time) 'WEEKDAY)
+    (setf (decoded-time-dst time) 'DST)
+    (setf (decoded-time-zone time) 'ZONE)
+    (should-equal (decoded-time-second time) 'SECOND)
+    (should-equal (decoded-time-minute time) 'MINUTE)
+    (should-equal (decoded-time-hour time) 'HOUR)
+    (should-equal (decoded-time-day time) 'DAY)
+    (should-equal (decoded-time-month time) 'MONTH)
+    (should-equal (decoded-time-year time) 'YEAR)
+    (should-equal (decoded-time-weekday time) 'WEEKDAY)
+    (should-equal (decoded-time-dst time) 'DST)
+    (should-equal (decoded-time-zone time) 'ZONE)))
 
 (ert-deftest decoded-time-period ()
   (should-equal 0 (decoded-time-period '()))
@@ -2107,11 +2680,21 @@
   (should-error (decoded-time-period '(0 0 0 0 a)) :type 'wrong-type-argument)
   (should-error (decoded-time-period '(0 0 0 0 0 a)) :type 'wrong-type-argument))
 
+(ert-deftest make-decoded-time ()
+  (should-equal '(s m h d M Y nil D Z)
+                (make-decoded-time :second 's :minute 'm :hour 'h
+                                   :day 'd :month 'M :year 'Y
+                                   :dst 'D :zone 'Z)))
+
 (ert-deftest date-days-in-month ()
   (should-equal 31 (date-days-in-month 2020 1))
   (should-equal 30 (date-days-in-month 2020 4))
   (should-equal 29 (date-days-in-month 2020 2))
   (should-equal 28 (date-days-in-month 2021 2)))
+
+(ert-deftest date-ordinal-to-time ()
+  (should-equal '(nil nil nil 9 4 2020 nil nil nil) (date-ordinal-to-time 2020 100))
+  (should-equal '(nil nil nil 19 7 2021 nil nil nil) (date-ordinal-to-time 2021 200)))
 
 (ert-deftest regexp-opt ()
   ;; Ensure `regexp-opt' doesn't change the existing
@@ -2129,6 +2712,192 @@
                  "aaa"                  ;longer string
                  ))
     (should-not (string-match-p regexp-unmatchable str))))
+
+(ert-deftest use-region ()
+  (with-temp-buffer
+    (insert "abc\ndef\n")
+    (set-mark 2)
+    (goto-char 7)
+    (transient-mark-mode)
+    (should (use-region-p))
+    (should-equal 2 (use-region-beginning))
+    (should-equal 7 (use-region-end))))
+
+(ert-deftest region-bounds ()
+  (should-error (region-bounds))
+  ;; FIXME: On Emacs 24 `region-bounds' always returns a continuous region.
+  (when (> emacs-major-version 24)
+    (let ((region-extract-function #'ignore))
+      (should-not (region-bounds)))
+    (let ((region-extract-function (lambda (_) '((2 . 3) (6 . 7)))))
+      (should-equal (region-bounds) '((2 . 3) (6 . 7)))))
+  (with-temp-buffer
+    (insert "abc\ndef\n")
+    (set-mark 2)
+    (goto-char 7)
+    (should-equal (region-bounds) '((2 . 7)))))
+
+(ert-deftest region-noncontiguous-p ()
+  (when (> emacs-major-version 24)
+    (let ((region-extract-function (lambda (_) '((2 . 3) (6 . 7)))))
+      (should (region-noncontiguous-p))))
+  (with-temp-buffer
+    (insert "abc\ndef\n")
+    (set-mark 2)
+    (goto-char 7)
+    (transient-mark-mode)
+    (should-not (region-noncontiguous-p))
+    (should-not (use-region-noncontiguous-p))
+    (should (use-region-p))
+    ;; FIXME: On Emacs 24 `region-bounds' always returns a continuous region.
+    (when (> emacs-major-version 24)
+      (let ((region-extract-function (lambda (_) '((2 . 3) (6 . 7)))))
+        (should (region-noncontiguous-p))
+        (should (use-region-noncontiguous-p))))))
+
+(ert-deftest get-scratch-buffer-create ()
+  (should-equal "*scratch*" (buffer-name (get-scratch-buffer-create)))
+  (should-equal initial-major-mode
+                (buffer-local-value 'major-mode (get-scratch-buffer-create))))
+
+(ert-deftest ring-resize ()
+  (let ((ring (make-ring 3)))
+    (ring-insert ring 1)
+    (ring-insert ring 2)
+    (ring-insert ring 3)
+    (ring-resize ring 5)
+    (should-equal (ring-size ring) 5)
+    (should-equal (ring-elements ring) '(3 2 1)))
+  (let ((ring (make-ring 3)))
+    (ring-resize ring 5)
+    (should-equal (ring-size ring) 5)
+    (should-equal (ring-elements ring) '()))
+  (let ((ring (make-ring 3)))
+    (ring-insert ring 1)
+    (ring-insert ring 2)
+    (ring-insert ring 3)
+    (ring-insert ring 4)
+    (ring-insert ring 5)
+    (ring-resize ring 5)
+    (should-equal (ring-size ring) 5)
+    (should-equal (ring-elements ring) '(5 4 3)))
+  (let ((ring (make-ring 5)))
+    (ring-insert ring 1)
+    (ring-insert ring 2)
+    (ring-insert ring 3)
+    (ring-insert ring 4)
+    (ring-insert ring 5)
+    (ring-resize ring 3)
+    (should-equal (ring-size ring) 3)
+    (should-equal (ring-elements ring) '(5 4 3))))
+
+(ert-deftest save-mark-and-excursion ()
+  (with-temp-buffer
+    (insert "a\nb\nc")
+    (goto-char 1)
+    (set-mark 2)
+    (should-equal (point) 1)
+    (should-equal (mark) 2)
+    (save-mark-and-excursion
+      (goto-char 3)
+      (set-mark 4)
+      (should-equal (point) 3)
+      (should-equal (mark) 4))
+    (should-equal (point) 1)
+    (should-equal (mark) 2)))
+
+(ert-deftest text-quoting-style ()
+  (should (text-quoting-style))
+  (let ((text-quoting-style t))
+    (should-equal 'curve (text-quoting-style)))
+  (let ((text-quoting-style 'foo))
+    (should-equal 'curve (text-quoting-style)))
+  (let ((text-quoting-style 'grave))
+    (should-equal 'grave (text-quoting-style))))
+
+(ert-deftest substitute-quotes ()
+  (let ((text-quoting-style 'curve))
+    (should-equal (substitute-quotes "quotes ‘like this’") "quotes ‘like this’")
+    (should-equal (substitute-quotes "`x'") "‘x’")
+    (should-equal (substitute-quotes "`") "‘")
+    (should-equal (substitute-quotes "'") "’")
+    (should-equal (substitute-quotes "\\`") "\\‘"))
+  (let ((text-quoting-style 'straight))
+    (should-equal (substitute-quotes "quotes `like this'") "quotes 'like this'")
+    (should-equal (substitute-quotes "`x'") "'x'")
+    (should-equal (substitute-quotes "`") "'")
+    (should-equal (substitute-quotes "'") "'")
+    (should-equal (substitute-quotes "\\`") "\\'"))
+  (let ((text-quoting-style 'grave))
+    (should-equal (substitute-quotes "quotes `like this'") "quotes `like this'")
+    (should-equal (substitute-quotes "`x'") "`x'")
+    (should-equal (substitute-quotes "`") "`")
+    (should-equal (substitute-quotes "'") "'")
+    (should-equal (substitute-quotes "\\`") "\\`")))
+
+(ert-deftest readablep ()
+  (should (readablep "foo"))
+  (should (readablep '("foo" 1 2.3 (a . b) [x y z] :key)))
+  (should-not (readablep (list (make-marker))))
+  (should-not (readablep (make-marker))))
+
+(ert-deftest count-sentences ()
+  (with-temp-buffer
+    (insert "First sentence.  Second sentence.  Third sentence.  Fourth sentence.")
+    (should-equal 4 (count-sentences (point-min) (point-max)))
+    (should-equal 2 (count-sentences 16 50))))
+
+(ert-deftest major-mode-suspend ()
+  (with-temp-buffer
+    (should (local-variable-if-set-p 'major-mode--suspended))
+    (should (get 'major-mode--suspended 'permanent-local))
+    (text-mode)
+    (should sentence-end-double-space)
+    (setq-local sentence-end-double-space nil)
+    (major-mode-suspend)
+    (should-equal major-mode--suspended #'text-mode)
+    (should sentence-end-double-space)
+    (prog-mode)
+    (should-equal major-mode #'prog-mode)
+    (major-mode-restore)
+    (should-not major-mode--suspended)
+    (should sentence-end-double-space)
+    (should-equal major-mode #'text-mode)))
+
+(ert-deftest with-delayed-message ()
+  ;; No real test, since the backported function never displays a message.
+  (should-equal 'result (with-delayed-message (1 "timeout") 'result))
+  (should-equal 'result (funcall-with-delayed-message
+                         1 "timeout" (lambda () 'result))))
+
+(ert-deftest set-transient-map ()
+  (let (overriding-terminal-local-map)
+    ;; TODO Implement a proper test.  Interactive features like
+    ;; `set-transient-map' are hard to test and Emacs itself is lacking tests.
+    ;; For now only test the calling convention here.
+    (set-transient-map (define-keymap "x" #'ignore))
+    (compat-call set-transient-map (define-keymap "x" #'ignore))
+    (compat-call set-transient-map (define-keymap "x" #'ignore) nil nil "msg" 1)))
+
+(ert-deftest ert-with-temp-file ()
+  (ert-with-temp-file file
+    (should-not (directory-name-p file))
+    (should (file-readable-p file))
+    (should (file-writable-p file)))
+  (ert-with-temp-file dir :directory t
+    (should (directory-name-p dir))
+    (should (file-directory-p dir)))
+  (ert-with-temp-file file :buffer buffer
+    (should (equal (current-buffer) buffer))
+    (should-equal buffer-file-name file)
+    (should-not (directory-name-p file))
+    (should (file-readable-p file))
+    (should (file-writable-p file))))
+
+(ert-deftest ert-with-temp-directory ()
+  (ert-with-temp-directory dir
+    (should (directory-name-p dir))
+    (should (file-directory-p dir))))
 
 (provide 'compat-tests)
 ;;; compat-tests.el ends here

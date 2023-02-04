@@ -1,4 +1,4 @@
-;;; compat-25.el --- Compatibility Layer for Emacs 25.1  -*- lexical-binding: t; -*-
+;;; compat-25.el --- Functionality added in Emacs 25.1 -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
@@ -17,8 +17,7 @@
 
 ;;; Commentary:
 
-;; Find here the functionality added in Emacs 25.1, needed by older
-;; versions.
+;; Functionality added in Emacs 25.1, needed by older Emacs versions.
 
 ;;; Code:
 
@@ -27,7 +26,7 @@
 
 ;;;; Defined in alloc.c
 
-(compat-defun bool-vector (&rest objects) ;; <OK>
+(compat-defun bool-vector (&rest objects) ;; <compat-tests:bool-vector>
   "Return a new bool-vector with specified arguments as elements.
 Allows any number of arguments, including zero.
 usage: (bool-vector &rest OBJECTS)"
@@ -42,9 +41,9 @@ usage: (bool-vector &rest OBJECTS)"
 
 ;;;; Defined in fns.c
 
-(compat-defun sort (seq predicate) ;; <OK>
-  "Extend `sort' to sort SEQ as a vector."
-  :explicit t
+(compat-defun sort (seq predicate) ;; <compat-tests:sort>
+  "Handle vector SEQ."
+  :extended t
   (cond
    ((listp seq)
     (sort seq predicate))
@@ -59,26 +58,60 @@ usage: (bool-vector &rest OBJECTS)"
 
 ;;;; Defined in editfns.c
 
-(compat-defalias format-message format) ;; <OK>
+(compat-defalias format-message format) ;; <compat-tests:format-message>
 
 ;;;; Defined in fileio.c
 
-(compat-defun directory-name-p (name) ;; <OK>
+(compat-defun directory-name-p (name) ;; <compat-tests:directory-name-p>
   "Return non-nil if NAME ends with a directory separator character."
   (eq (eval-when-compile
         (if (memq system-type '(cygwin windows-nt ms-dos))
             ?\\ ?/))
       (aref name (1- (length name)))))
 
+;;;; Defined in doc.c
+
+(compat-defvar text-quoting-style nil ;; <compat-tests:text-quoting-style>
+  "Style to use for single quotes in help and messages.
+
+The value of this variable determines substitution of grave accents
+and apostrophes in help output (but not for display of Info
+manuals) and in functions like `message' and `format-message', but not
+in `format'.
+
+The value should be one of these symbols:
+  `curve':    quote with curved single quotes ‘like this’.
+  `straight': quote with straight apostrophes \\='like this\\='.
+  `grave':    quote with grave accent and apostrophe \\=`like this\\=';
+              i.e., do not alter the original quote marks.
+  nil:        like `curve' if curved single quotes are displayable,
+              and like `grave' otherwise.  This is the default.
+
+You should never read the value of this variable directly from a Lisp
+program.  Use the function `text-quoting-style' instead, as that will
+compute the correct value for the current terminal in the nil case.")
+
+;;;; Defined in simple.el
+
+;; `save-excursion' behaved like `save-mark-and-excursion' before 25.1.
+(compat-defalias save-mark-and-excursion save-excursion) ;; <compat-tests:save-mark-and-excursion>
+
+(declare-function region-bounds nil) ;; Defined in compat-26.el
+(compat-defun region-noncontiguous-p () ;; <compat-tests:region-noncontiguous-p>
+  "Return non-nil if the region contains several pieces.
+An example is a rectangular region handled as a list of
+separate contiguous regions for each line."
+  (let ((bounds (region-bounds))) (and (cdr bounds) bounds)))
+
 ;;;; Defined in subr.el
 
-(compat-defun string-greaterp (string1 string2) ;; <OK>
+(compat-defun string-greaterp (string1 string2) ;; <compat-tests:string-greaterp>
   "Return non-nil if STRING1 is greater than STRING2 in lexicographic order.
 Case is significant.
 Symbols are also allowed; their print names are used instead."
   (string-lessp string2 string1))
 
-(compat-defmacro with-file-modes (modes &rest body) ;; <OK>
+(compat-defmacro with-file-modes (modes &rest body) ;; <compat-tests:with-file-modes>
   "Execute BODY with default file permissions temporarily set to MODES.
 MODES is as for `set-default-file-modes'."
   (declare (indent 1) (debug t))
@@ -90,17 +123,7 @@ MODES is as for `set-default-file-modes'."
              ,@body)
          (set-default-file-modes ,umask)))))
 
-(compat-defun alist-get (key alist &optional default remove) ;; <OK>
-  "Return the value associated with KEY in ALIST, using `assq'.
-If KEY is not found in ALIST, return DEFAULT.
-This is a generalized variable suitable for use with `setf'.
-When using it to set a value, optional argument REMOVE non-nil
-means to remove KEY from ALIST if the new value is `eql' to DEFAULT."
-  (ignore remove)
-  (let ((x (assq key alist)))
-    (if x (cdr x) default)))
-
-(compat-defmacro if-let (spec then &rest else) ;; <OK>
+(compat-defmacro if-let (spec then &rest else) ;; <compat-tests:if-let>
   "Bind variables according to SPEC and evaluate THEN or ELSE.
 Evaluate each binding in turn, as in `let*', stopping if a
 binding value is nil.  If all are non-nil return the value of
@@ -120,8 +143,7 @@ with an old syntax that accepted only one binding."
            (debug ([&or (symbolp form)
                         (&rest [&or symbolp (symbolp form) (form)])]
                    body)))
-  (when (and (<= (length spec) 2)
-             (not (listp (car spec))))
+  (when (and (<= (length spec) 2) (not (listp (car spec))))
     ;; Adjust the single binding case
     (setq spec (list spec)))
   (let ((empty (make-symbol "s"))
@@ -135,7 +157,7 @@ with an old syntax that accepted only one binding."
     `(let* ,(nreverse list)
        (if ,(caar list) ,then ,@else))))
 
-(compat-defmacro when-let (spec &rest body) ;; <OK>
+(compat-defmacro when-let (spec &rest body) ;; <compat-tests:when-let>
   "Bind variables according to SPEC and conditionally evaluate BODY.
 Evaluate each binding in turn, stopping if a binding value is nil.
 If all are non-nil, return the value of the last form in BODY.
@@ -146,7 +168,11 @@ The variable list SPEC is the same as in `if-let'."
 
 ;;;; Defined in subr-x.el
 
-(compat-defmacro thread-first (&rest forms) ;; <OK>
+(compat-defun hash-table-empty-p (hash-table) ;; <compat-tests:hash-table-empty-p>
+  "Check whether HASH-TABLE is empty (has 0 elements)."
+  (zerop (hash-table-count hash-table)))
+
+(compat-defmacro thread-first (&rest forms) ;; <compat-tests:thread-first>
   "Thread FORMS elements as the first argument of their successor.
 Example:
     (thread-first
@@ -170,7 +196,7 @@ threading."
                          (cdr form))))
     body))
 
-(compat-defmacro thread-last (&rest forms) ;; <OK>
+(compat-defmacro thread-last (&rest forms) ;; <compat-tests:thread-last>
   "Thread FORMS elements as the last argument of their successor.
 Example:
     (thread-last
@@ -193,7 +219,30 @@ threading."
 
 ;;;; Defined in macroexp.el
 
-(compat-defun macroexpand-1 (form &optional environment) ;; <OK>
+(compat-defun macroexp-parse-body (body) ;; <compat-tests:macroexp-parse-body>
+  "Parse a function BODY into (DECLARATIONS . EXPS)."
+  (let ((decls ()))
+    (while (and (cdr body)
+                (let ((e (car body)))
+                  (or (stringp e)
+                      (memq (car-safe e)
+                            '(:documentation declare interactive cl-declare)))))
+      (push (pop body) decls))
+    (cons (nreverse decls) body)))
+
+(compat-defun macroexp-quote (v) ;; <compat-tests:macroexp-quote>
+  "Return an expression E such that `(eval E)' is V.
+
+E is either V or (quote V) depending on whether V evaluates to
+itself or not."
+  (if (and (not (consp v))
+           (or (keywordp v)
+               (not (symbolp v))
+               (memq v '(nil t))))
+      v
+    (list 'quote v)))
+
+(compat-defun macroexpand-1 (form &optional environment) ;; <compat-tests:macroexpand-1>
   "Perform (at most) one step of macro expansion."
   (cond
    ((consp form)
@@ -216,10 +265,6 @@ threading."
                   (apply (cdr def) (cdr form))
                 form))))))))
    (t form)))
-
-;;;; Defined in byte-run.el
-
-(compat-defalias function-put put) ;; <OK>
 
 (provide 'compat-25)
 ;;; compat-25.el ends here
