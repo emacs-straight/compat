@@ -31,7 +31,7 @@ modify this GNU manual.”
 @finalout
 @titlepage
 @title "Compat" Manual
-@subtitle For version 29.1.3.2
+@subtitle For version 29.1.3.3
 @author Philip Kaludercic, Daniel Mendler
 @page
 @vskip 0pt plus 1filll
@@ -46,7 +46,7 @@ modify this GNU manual.”
 
 This manual documents the usage of the "Compat" Emacs lisp library,
 the forward-compatibility library for Emacs Lisp, corresponding to
-version 29.1.3.2.
+version 29.1.3.3.
 
 @insertcopying
 @end ifnottex
@@ -106,7 +106,7 @@ The intended use-case for this library is for package developers to
 add as a dependency in the header:
 
 @example
-;; Package-Requires: ((emacs "24.4") (compat "29.1.3.2"))
+;; Package-Requires: ((emacs "24.4") (compat "29.1.3.3"))
 @end example
 
 There is no need to depend on @code{emacs} 24.4 specifically.  One can
@@ -126,10 +126,11 @@ the noerror flag should be specified.
 (require 'compat nil 'noerror)
 @end example
 
-This will load all necessary Compat definitions.  Note that if Compat
-is installed on a recent version of Emacs, all of the definitions are
-disabled at compile time, such that no negative performance impact is
-incurred.
+This will load all necessary Compat definitions.  Compat also loads
+the @code{seq} library which is preloaded by default on Emacs 29.
+Note that if Compat is installed on a recent version of Emacs, all of
+the definitions are disabled at compile time, such that no negative
+performance impact is incurred.
 
 Note that Compat provides replacement functions with extended
 functionality for functions that are already defined (@code{sort},
@@ -238,10 +239,10 @@ convention or behavior can be accessed via the @code{compat-function}
 and @code{compat-call} macros.  In this manual we call such
 definitions ``Extended Definitions''. An example is the function
 @code{plist-get}.  Note that extended functions are subject to closer
-scrutiny, since their usage is not completely painless thanks to
-@code{compat-call}.  If a particular extended function does not see
-much usage or the extension yields only marginal benefits, we may not
-provide it as part of Compat.
+scrutiny, since their usage via @code{compat-call} is not completely
+painless.  If a particular extended function does not see much usage
+or the extension yields only marginal benefits, we may not provide it
+as part of Compat.
 
 @item
 Bug fixes are usually not ported back as part of Compat.  Sometimes
@@ -256,34 +257,27 @@ definitions.
 The definition belongs to an Emacs core package, which is also
 distributed via ELPA.  Compat does not have to provide backward
 compatibility for core packages since the updated package can be
-installed directly from ELPA. Examples include xref, project, seq, map
-and transient.
+installed directly from ELPA. Examples include the libraries xref,
+project, seq, map and transient.
 
 @item
 New functionality depends on an entire new, non-trivial core library,
-which is infeasible to duplicate within Compat while also providing
-the necessary backwards compatibility.
+which is infeasible to duplicate within Compat.  If a backport of such
+a library is required, the preferred approach is to either release the
+library separately on GNU ELPA as a core package or as a separately
+maintained GNU ELPA package.  An example is the iso8601 library.
 
 @item
-New functionality was implemented in the C core, and depends on
+New functionality was implemented in the C core, or depends on
 external libraries that cannot be reasonably duplicated in the scope
-of a compatibility library. For example a missing libxml cannot be
-emulated.
+of a compatibility library. Sometimes new functions on the C level
+rely on internal data structures, which we cannot access, rendering a
+backport impossible. For example a missing libxml cannot be emulated.
 
 @item
 The semantics of Elisp changed on a deep level. For example the
 addition of Bigint support in Emacs 27.1 cannot be replicated on the
 level of Compat.
-
-@item
-Backported functions would introduce performance bugs. Sometimes
-functions provided by newer Emacs versions are implemented on the C
-level, relying on internal data structures, which we cannot access. In
-this case a backport may still be possible but would be significantly
-slower than the newer functionality, such that downstream packages
-would observe performance bugs. Examples are the
-@code{string-pixel-width} function and the @code{json-parse-string}
-function provided by libjansson.
 @end itemize
 
 @node Support
@@ -585,6 +579,8 @@ The function @code{set-binary-mode}.
 @item
 The functions @code{bufferpos-to-filepos} and
 @code{filepos-to-bufferpos}.
+@item
+The @code{thunk} library.
 @end itemize
 
 @node Emacs 26.1
@@ -1089,6 +1085,10 @@ All changes related to @code{display-buffer}.
 The function @code{window-swap-states}.
 @item
 The function @code{string-version-lessp}.
+@item
+The @code{svg} library.
+@item
+The @code{xdg} library.
 @end itemize
 
 @node Emacs 27.1
@@ -1165,6 +1165,21 @@ This predicate tests whether its argument is a small integer, and
 returns @code{t} if so, @code{nil} otherwise.  Small integers can be
 compared with @code{eq}.
 @end defun
+
+@c copied from lispref/compile.texi
+@defspec with-suppressed-warnings warnings body@dots{}
+In execution, this is equivalent to @code{(progn @var{body}...)}, but
+the compiler does not issue warnings for the specified conditions in
+@var{body}.  @var{warnings} is an association list of warning symbols
+and function/variable symbols they apply to.  For instance, if you
+wish to call an obsolete function called @code{foo}, but want to
+suppress the compilation warning, say:
+
+@lisp
+(with-suppressed-warnings ((obsolete foo))
+  (foo ...))
+@end lisp
+@end defspec
 
 @c copied from lispref/lists.texi
 @defun proper-list-p object
@@ -1628,17 +1643,15 @@ The function @code{decoded-time-set-defaults}.
 @item
 The function @code{time-convert}.
 @item
-All @code{iso8601-*} functions.
-@item
 The macro @code{benchmark-progn}.
-@item
-The macro @code{with-suppressed-warnings}.
 @item
 Support for @code{condition-case} to handle t.
 @item
 The function @code{file-system-info}.
 @item
 The function @code{group-name}.
+@item
+The function @code{face-extend-p} and @code{set-face-extend}.
 @item
 Additional @code{format-spec} modifiers.
 @item
@@ -1647,6 +1660,12 @@ Support for additional body forms for
 @item
 The macro @code{with-connection-local-variables} and related
 functionality.
+@item
+The @code{iso8601} library.
+@item
+The @code{exif} library.
+@item
+The @code{image-converter} library.
 @end itemize
 
 @node Emacs 28.1
@@ -2103,6 +2122,13 @@ If native compilation is not available, this function always returns
 @code{nil}.
 @end defun
 
+@c copied from on lisp/window.el
+@defmac with-window-non-dedicated window &rest body
+Evaluate @var{body} with @var{window} temporarily made non-dedicated.
+If @var{window} is nil, use the selected window.  Return the value of
+the last form in @var{body}.
+@end defmac
+
 @subsection Extended Definitions
 These functions must be called explicitly via @code{compat-call},
 since their calling convention or behavior was extended in Emacs 28.1:
@@ -2138,13 +2164,6 @@ instead just the selected frame.
 This compatibility version handles the optional argument
 @var{all-frames}.
 @end defun
-
-@c copied from on lisp/window.el
-@defmac with-window-non-dedicated window &rest body
-Evaluate @var{body} with @var{window} temporarily made non-dedicated.
-If @var{window} is nil, use the selected window.  Return the value of
-the last form in @var{body}.
-@end defmac
 
 @subsection Missing Definitions
 Compat does not provide support for the following Lisp features
@@ -2211,7 +2230,7 @@ The function @code{max-mini-window-lines}.
 @item
 The function @code{lock-file} and @code{unlock-file}.
 @item
-Any @code{multisession} functionality.
+The @code{multisession} library.
 @end itemize
 
 @node Emacs 29.1
@@ -2940,6 +2959,81 @@ The same keyword arguments are supported as in
 @code{ert-with-temp-file} (which see), except for @code{:text}.
 @end defmac
 
+@c copied from lispref/cl.texi
+@defmac cl-with-gensyms names@dots{} body
+This macro expands to code that executes @var{body} with each of the
+variables in @var{names} bound to a fresh uninterned symbol, or
+@dfn{gensym}, in Common Lisp parlance.  For macros requiring more than
+one gensym, use of @code{cl-with-gensyms} shortens the code and
+renders one's intentions clearer.  Compare:
+
+@example
+(defmacro my-macro (foo)
+  (let ((bar (gensym "bar"))
+        (baz (gensym "baz"))
+        (quux (gensym "quux")))
+    `(let ((,bar (+ @dots{})))
+       @dots{})))
+
+(defmacro my-macro (foo)
+  (cl-with-gensyms (bar baz quux)
+    `(let ((,bar (+ @dots{})))
+       @dots{})))
+@end example
+@end defmac
+
+@c copied from lispref/cl.texi
+@defmac cl-once-only ((variable form)@dots{}) body
+This macro is primarily to help the macro programmer ensure that forms
+supplied by the user of the macro are evaluated just once by its
+expansion even though the result of evaluating the form is to occur
+more than once.  Less often, this macro is used to ensure that forms
+supplied by the macro programmer are evaluated just once.
+
+Each @var{variable} may be used to refer to the result of evaluating
+@var{form} in @var{body}.  @code{cl-once-only} binds each
+@var{variable} to a fresh uninterned symbol during the evaluation of
+@var{body}.  Then, @code{cl-once-only} wraps the final expansion in
+code to evaluate each @var{form} and bind the result to the
+corresponding uninterned symbol.  Thus, when the macro writer
+substitutes the value for @var{variable} into the expansion they are
+effectively referring to the result of evaluating @var{form}, rather
+than @var{form} itself.  Another way to put this is that each
+@var{variable} is bound to an expression for the (singular) result of
+evaluating @var{form}.
+
+The most common case is where @var{variable} is one of the arguments
+to the macro being written, so @code{(variable variable)} may be
+abbreviated to just @code{variable}.
+
+For example, consider this macro:
+
+@example
+(defmacro my-list (x y &rest forms)
+  (let ((x-result (gensym))
+        (y-result (gensym)))
+    `(let ((,x-result ,x)
+           (,y-result ,y))
+       (list ,x-result ,y-result ,x-result ,y-result
+             (progn ,@@forms))))
+@end example
+
+In a call like @w{@code{(my-list (pop foo) @dots{})}} the intermediate
+binding to @code{x-result} ensures that the @code{pop} is not done
+twice.  But as a result the code is rather complex: the reader must
+keep track of how @code{x-result} really just means the first
+parameter of the call to the macro, and the required use of multiple
+gensyms to avoid variable capture by @code{(progn ,@@forms)} obscures
+things further.  @code{cl-once-only} takes care of these details:
+
+@example
+(defmacro my-list (x y &rest forms)
+  (cl-once-only (x y)
+    `(list ,x ,y ,x ,y
+           (progn ,@@forms))))
+@end example
+@end defmac
+
 @subsection Extended Definitions
 These functions must be called explicitly via @code{compat-call},
 since their calling convention or behavior was extended in Emacs 29.1:
@@ -3067,9 +3161,9 @@ implemented in 29.1:
 @item
 The function @code{imagep}.
 @item
-The function @code{function-documentation}.
+The function @code{image-at-point-p}.
 @item
-The command @code{string-edit} and @code{read-string-from-buffer}.
+The function @code{function-documentation}.
 @item
 The macro @code{with-undo-amalgamate}.
 @item
@@ -3077,17 +3171,27 @@ The function @code{string-glyph-split}.
 @item
 The function @code{string-limit}.
 @item
-The function @code{string-pixel-width}.
-@item
-The function @code{buffer-text-pixel-size}.
+The function @code{string-pixel-width} and @code{buffer-text-pixel-size}.
 @item
 The function @code{pixel-fill-region}.
-@item
-The function @code{textsec-suspicious-p}.
 @item
 The function @code{minibuffer-lazy-highlight-setup}.
 @item
 The function @code{pp-emacs-lisp-code}.
+@item
+The functions @code{xdg-state-home}, @code{xdg-current-desktop} and @code{xdg-session-type}.
+@item
+The macro @code{setopt}.
+@item
+The @code{oclosure} library.
+@item
+The @code{textsec} library.
+@item
+The @code{range} library.
+@item
+The @code{string-edit} library.
+@item
+The @code{vtable} library.
 @end itemize
 
 @node Development

@@ -2568,6 +2568,14 @@
   (should-equal '(if a (progn b)) (macroexpand-1 '(when a b)))
   (should-equal '(if a (progn (unless b c))) (macroexpand-1 '(when a (unless b c)))))
 
+;; NOTE: `with-suppressed-warnings' does not work inside of `ert-deftest'?!
+(defun compat-tests--with-suppressed-warnings ()
+  (with-suppressed-warnings ((interactive-only goto-line)
+                             (obsolete encode-time-value))
+    (encode-time-value 1 2 3 4 0)
+    (goto-line 10)))
+(ert-deftest with-suppressed-warnings () #'compat-tests--with-suppressed-warnings)
+
 (ert-deftest time-equal-p ()
   (should (time-equal-p nil nil))
 
@@ -2898,6 +2906,26 @@
   (ert-with-temp-directory dir
     (should (directory-name-p dir))
     (should (file-directory-p dir))))
+
+(defmacro compat-tests--with-gensyms ()
+  (cl-with-gensyms (x y)
+    `(let ((,x 1) (,y 2)) (+ ,x ,y))))
+
+(ert-deftest cl-with-gensyms ()
+  (should-equal 3 (compat-tests--with-gensyms)))
+
+(defmacro compat-tests--once-only (x)
+  (cl-once-only (x)
+    `(cons ,x ,x)))
+
+(ert-deftest cl-once-only ()
+  (let ((x 0))
+    (should-equal (cons 1 1) (compat-tests--once-only (cl-incf x)))
+    (should-equal 1 x)))
+
+(ert-deftest seq ()
+  (should-equal 3 (seq-length '(a b c)))
+  (should-equal 3 (seq-length [a b c])))
 
 (provide 'compat-tests)
 ;;; compat-tests.el ends here
