@@ -31,7 +31,7 @@ modify this GNU manual.”
 @finalout
 @titlepage
 @title "Compat" Manual
-@subtitle For version 29.1.3.3
+@subtitle For version 29.1.3.4
 @author Philip Kaludercic, Daniel Mendler
 @page
 @vskip 0pt plus 1filll
@@ -46,7 +46,7 @@ modify this GNU manual.”
 
 This manual documents the usage of the "Compat" Emacs lisp library,
 the forward-compatibility library for Emacs Lisp, corresponding to
-version 29.1.3.3.
+version 29.1.3.4.
 
 @insertcopying
 @end ifnottex
@@ -106,7 +106,7 @@ The intended use-case for this library is for package developers to
 add as a dependency in the header:
 
 @example
-;; Package-Requires: ((emacs "24.4") (compat "29.1.3.3"))
+;; Package-Requires: ((emacs "24.4") (compat "29.1.3.4"))
 @end example
 
 There is no need to depend on @code{emacs} 24.4 specifically.  One can
@@ -119,12 +119,11 @@ In any file where compatibility forms are used, a
 (require 'compat)
 @end example
 
-should be added early on. In packages which are part of Emacs itself,
-the noerror flag should be specified.
-
-@example
-(require 'compat nil 'noerror)
-@end example
+should be added early on. In packages which are part of Emacs itself
+and which want to take advantage of Compat, the @code{noerror} flag
+should be specified: @code{(require 'compat nil 'noerror)}.  In the
+future a minimal version of Compat may be added to the Emacs core,
+such that the @code{noerror} flag will not be necessary anymore.
 
 This will load all necessary Compat definitions.  Compat also loads
 the @code{seq} library which is preloaded by default on Emacs 29.
@@ -160,6 +159,15 @@ This macro returns the compatibility function symbol for @var{fun}.
 See @code{compat-call} for a more convenient macro to directly call
 compatibility functions.
 @end defmac
+
+If Compat is used in core packages, where Compat must be required
+currently with the @code{noerror} flag, the macros @code{compat-call}
+and @code{compat-function} ar not available.  In the future the macros
+could be added to subr.  Alternatively a minimal version of compat.el
+could be added to the core.  For now it is necessary to replicate the
+definition of the macros within core packages.  For example the
+package ERC defines its own macro @code{erc-compat-call}, which
+replicates the Compat definition precisely.
 
 This design has been chosen since Compat does not advise or override
 existing functions.  Generally Compat is written in defensive style
@@ -2237,7 +2245,8 @@ The function @code{split-string-shell-command}.
 @item
 The function @code{string-limit}.
 @item
-The function @code{innermost-minibuffer-p}.
+The functions @code{innermost-minibuffer-p} and
+@code{minibuffer-innermost-command-loop-p}.
 @item
 The function @code{max-mini-window-lines}.
 @item
@@ -3186,8 +3195,6 @@ The function @code{string-limit}.
 @item
 The function @code{string-pixel-width} and @code{buffer-text-pixel-size}.
 @item
-The function @code{pixel-fill-region}.
-@item
 The function @code{minibuffer-lazy-highlight-setup}.
 @item
 The function @code{pp-emacs-lisp-code}.
@@ -3205,6 +3212,8 @@ The @code{range} library.
 The @code{string-edit} library.
 @item
 The @code{vtable} library.
+@item
+The @code{pixel-fill} library.
 @end itemize
 
 @node Development
