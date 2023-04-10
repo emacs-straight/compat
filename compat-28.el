@@ -26,6 +26,13 @@
 
 (compat-version "28.1")
 
+;;;; Defined in comp.c
+
+(compat-defun native-comp-available-p () ;; <compat-tests:native-comp-available-p>
+  "Return non-nil if native compilation support is built-in.
+NOTE: The compatibility version always returns nil."
+  nil)
+
 ;;;; Defined in fns.c
 
 ;; FIXME Should handle multibyte regular expressions
@@ -132,7 +139,7 @@ inserted before contatenating."
       (setf (nthcdr count files) nil))
     files))
 
-(compat-defun directory-files-and-attributes (directory &optional full match nosort id-format count) ;; <compat-tests:directory-files-and-attributs>
+(compat-defun directory-files-and-attributes (directory &optional full match nosort id-format count) ;; <compat-tests:directory-files-and-attributes>
   "Handle additional optional argument COUNT."
   :extended t
   (let ((files (directory-files-and-attributes directory full match nosort id-format)))
