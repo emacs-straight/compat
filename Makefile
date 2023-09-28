@@ -1,5 +1,35 @@
+### Makefile
+
+# Copyright (C) 2021-2023 Free Software Foundation, Inc.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+### Commentary:
+
+# The Makefile is an internal tool used for Compat development and
+# checking on the continuous integration system.
+
+# make all/compile   Compile Elisp files without no-byte-compile marking
+# make force-compile Compile *all* Elisp files to check for warnings
+# make clean         Delete compiled *.elc and *.info files
+# make test          Run the test suite
+# make check         Sanity checking of the test suite
+
+### Code:
+
 .POSIX:
-.PHONY: all compile test clean check
+.PHONY: all compile force-compile test clean check
 .SUFFIXES: .el .elc
 
 EMACS = emacs
@@ -16,6 +46,11 @@ BYTEC = compat-25.elc \
 all: compile
 
 compile: $(BYTEC)
+
+force-compile:
+	@sed -i "s/ no-byte-compile: t;/ no-byte-compile: nil;/" $(BYTEC:.elc=.el)
+	@$(MAKE) compile
+	@sed -i "s/ no-byte-compile: nil;/ no-byte-compile: t;/" $(BYTEC:.elc=.el)
 
 test:
 	$(EMACS) --version
