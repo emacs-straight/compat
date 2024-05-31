@@ -1,4 +1,4 @@
-This is docqeHH7Z.info, produced by makeinfo version 6.8 from
+This is doc9MjKWR.info, produced by makeinfo version 6.8 from
 compat.texi.
 
 Copyright © 2022-2024 Free Software Foundation, Inc.
@@ -20,7 +20,7 @@ START-INFO-DIR-ENTRY
 END-INFO-DIR-ENTRY
 
 
-File: docqeHH7Z.info,  Node: Top,  Next: Introduction,  Up: (dir)
+File: doc9MjKWR.info,  Node: Top,  Next: Introduction,  Up: (dir)
 
 "Compat" Manual
 ***************
@@ -68,7 +68,7 @@ Support
 
 
 
-File: docqeHH7Z.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
+File: doc9MjKWR.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
 
 1 Introduction
 **************
@@ -80,7 +80,7 @@ File: docqeHH7Z.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
 * Limitations::
 
 
-File: docqeHH7Z.info,  Node: Overview,  Next: Usage,  Up: Introduction
+File: doc9MjKWR.info,  Node: Overview,  Next: Usage,  Up: Introduction
 
 1.1 Overview
 ============
@@ -95,7 +95,7 @@ audience are package developers that are interested in using newer
 developments, without having to break compatibility.
 
 
-File: docqeHH7Z.info,  Node: Usage,  Next: Limitations,  Prev: Overview,  Up: Introduction
+File: doc9MjKWR.info,  Node: Usage,  Next: Limitations,  Prev: Overview,  Up: Introduction
 
 1.2 Usage
 =========
@@ -184,7 +184,7 @@ provide a development mailing list
 <~pkal/compat-devel@lists.sr.ht>).
 
 
-File: docqeHH7Z.info,  Node: Limitations,  Prev: Usage,  Up: Introduction
+File: doc9MjKWR.info,  Node: Limitations,  Prev: Usage,  Up: Introduction
 
 1.3 Limitations
 ===============
@@ -276,7 +276,7 @@ belong here, a *note report: Development. would be much appreciated.
      on the level of Compat.
 
 
-File: docqeHH7Z.info,  Node: Support,  Next: Development,  Prev: Introduction,  Up: Top
+File: doc9MjKWR.info,  Node: Support,  Next: Development,  Prev: Introduction,  Up: Top
 
 2 Support
 *********
@@ -293,7 +293,7 @@ manage to provide for each Emacs version.
 * Emacs 29.1::                   Compatibility support for Emacs 29.1
 
 
-File: docqeHH7Z.info,  Node: Emacs 25.1,  Next: Emacs 26.1,  Up: Support
+File: doc9MjKWR.info,  Node: Emacs 25.1,  Next: Emacs 26.1,  Up: Support
 
 2.1 Emacs 25.1
 ==============
@@ -524,7 +524,7 @@ implemented in 25.1:
    • The ‘thunk’ library.
 
 
-File: docqeHH7Z.info,  Node: Emacs 26.1,  Next: Emacs 27.1,  Prev: Emacs 25.1,  Up: Support
+File: doc9MjKWR.info,  Node: Emacs 26.1,  Next: Emacs 27.1,  Prev: Emacs 25.1,  Up: Support
 
 2.2 Emacs 26.1
 ==============
@@ -935,7 +935,7 @@ implemented in 26.1:
    • The ‘svg’ library (published separately as a :core package).
 
 
-File: docqeHH7Z.info,  Node: Emacs 27.1,  Next: Emacs 28.1,  Prev: Emacs 26.1,  Up: Support
+File: doc9MjKWR.info,  Node: Emacs 27.1,  Next: Emacs 28.1,  Prev: Emacs 26.1,  Up: Support
 
 2.3 Emacs 27.1
 ==============
@@ -1404,7 +1404,7 @@ implemented in 27.1:
    • The ‘image-converter’ library.
 
 
-File: docqeHH7Z.info,  Node: Emacs 28.1,  Next: Emacs 29.1,  Prev: Emacs 27.1,  Up: Support
+File: doc9MjKWR.info,  Node: Emacs 28.1,  Next: Emacs 29.1,  Prev: Emacs 27.1,  Up: Support
 
 2.4 Emacs 28.1
 ==============
@@ -1774,11 +1774,6 @@ available by Compat.
      native compilation is not available, this function behaves
      identically to ‘subrp’.
 
- -- Function: subr-native-elisp-p object
-     Return ‘t’ if OBJECT if the object is native compiled lisp.  If
-     native compilation is not available, this function always returns
-     ‘nil’.
-
  -- Function: native-comp-available-p
      This function returns non-‘nil’ if the running Emacs process has
      the native-compilation support compiled into it.  On systems that
@@ -1865,7 +1860,7 @@ implemented in 28.1:
    • The ‘multisession’ library.
 
 
-File: docqeHH7Z.info,  Node: Emacs 29.1,  Prev: Emacs 28.1,  Up: Support
+File: doc9MjKWR.info,  Node: Emacs 29.1,  Prev: Emacs 28.1,  Up: Support
 
 2.5 Emacs 29.1
 ==============
@@ -2699,7 +2694,7 @@ implemented in 29.1:
    • Support for symbols with position information.
 
 
-File: docqeHH7Z.info,  Node: Development,  Next: Function Index,  Prev: Support,  Up: Top
+File: doc9MjKWR.info,  Node: Development,  Next: Function Index,  Prev: Support,  Up: Top
 
 3 Development
 *************
@@ -2736,7 +2731,7 @@ version has been reasonably stabilized, e.g., around the time when the
 Emacs version branch is created in the Emacs repository on Savannah.
 
 
-File: docqeHH7Z.info,  Node: Function Index,  Next: Variable Index,  Prev: Development,  Up: Top
+File: doc9MjKWR.info,  Node: Function Index,  Next: Variable Index,  Prev: Development,  Up: Top
 
 Appendix A Function Index
 *************************
@@ -2769,7 +2764,7 @@ Appendix A Function Index
 * compat-call alist-get:                 Emacs 26.1.          (line 344)
 * compat-call assoc:                     Emacs 26.1.          (line 316)
 * compat-call assoc-delete-all:          Emacs 27.1.          (line 417)
-* compat-call count-windows:             Emacs 28.1.          (line 412)
+* compat-call count-windows:             Emacs 28.1.          (line 407)
 * compat-call define-key:                Emacs 29.1.          (line 755)
 * compat-call executable-find:           Emacs 27.1.          (line 429)
 * compat-call file-size-human-readable:  Emacs 27.1.          (line 397)
@@ -2788,7 +2783,7 @@ Appendix A Function Index
 * compat-call string-trim:               Emacs 26.1.          (line 375)
 * compat-call string-trim-left:          Emacs 26.1.          (line 359)
 * compat-call string-trim-right:         Emacs 26.1.          (line 367)
-* compat-call string-width:              Emacs 28.1.          (line 395)
+* compat-call string-width:              Emacs 28.1.          (line 390)
 * compat-function:                       Usage.               (line  58)
 * compiled-function-p:                   Emacs 29.1.          (line 226)
 * count-sentences:                       Emacs 29.1.          (line  25)
@@ -2890,7 +2885,7 @@ Appendix A Function Index
 * match-buffers:                         Emacs 29.1.          (line 292)
 * minibuffer-history-value:              Emacs 27.1.          (line  32)
 * named-let:                             Emacs 28.1.          (line 207)
-* native-comp-available-p:               Emacs 28.1.          (line 376)
+* native-comp-available-p:               Emacs 28.1.          (line 371)
 * ntake:                                 Emacs 29.1.          (line 213)
 * package-get-version:                   Emacs 27.1.          (line 205)
 * plistp:                                Emacs 29.1.          (line  65)
@@ -2922,7 +2917,6 @@ Appendix A Function Index
 * string-replace:                        Emacs 28.1.          (line  77)
 * string-search:                         Emacs 28.1.          (line  34)
 * string-split:                          Emacs 29.1.          (line 252)
-* subr-native-elisp-p:                   Emacs 28.1.          (line 371)
 * subr-primitive-p:                      Emacs 28.1.          (line 364)
 * substitute-quotes:                     Emacs 29.1.          (line  34)
 * take:                                  Emacs 29.1.          (line 199)
@@ -2950,12 +2944,12 @@ Appendix A Function Index
 * with-minibuffer-selected-window:       Emacs 27.1.          (line  38)
 * with-restriction:                      Emacs 29.1.          (line  73)
 * with-suppressed-warnings:              Emacs 27.1.          (line  65)
-* with-window-non-dedicated:             Emacs 28.1.          (line 384)
+* with-window-non-dedicated:             Emacs 28.1.          (line 379)
 * without-restriction:                   Emacs 29.1.          (line 107)
 * xor:                                   Emacs 27.1.          (line 142)
 
 
-File: docqeHH7Z.info,  Node: Variable Index,  Prev: Function Index,  Up: Top
+File: doc9MjKWR.info,  Node: Variable Index,  Prev: Function Index,  Up: Top
 
 Appendix B Variable Index
 *************************
@@ -2984,10 +2978,10 @@ Node: Emacs 25.112777
 Node: Emacs 26.122179
 Node: Emacs 27.139473
 Node: Emacs 28.159870
-Node: Emacs 29.179951
-Node: Development117330
-Node: Function Index119064
-Node: Variable Index134496
+Node: Emacs 29.179749
+Node: Development117128
+Node: Function Index118862
+Node: Variable Index134221
 
 End Tag Table
 
