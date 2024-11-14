@@ -1,4 +1,4 @@
-This is docWSG7kC.info, produced by makeinfo version 6.8 from
+This is docpIHCJw.info, produced by makeinfo version 6.8 from
 compat.texi.
 
 Copyright © 2022-2024 Free Software Foundation, Inc.
@@ -20,7 +20,7 @@ START-INFO-DIR-ENTRY
 END-INFO-DIR-ENTRY
 
 
-File: docWSG7kC.info,  Node: Top,  Next: Introduction,  Up: (dir)
+File: docpIHCJw.info,  Node: Top,  Next: Introduction,  Up: (dir)
 
 "Compat" Manual
 ***************
@@ -69,7 +69,7 @@ Support
 
 
 
-File: docWSG7kC.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
+File: docpIHCJw.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
 
 1 Introduction
 **************
@@ -81,7 +81,7 @@ File: docWSG7kC.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
 * Limitations::
 
 
-File: docWSG7kC.info,  Node: Overview,  Next: Usage,  Up: Introduction
+File: docpIHCJw.info,  Node: Overview,  Next: Usage,  Up: Introduction
 
 1.1 Overview
 ============
@@ -96,7 +96,7 @@ audience are package developers that are interested in using newer
 developments, without having to break compatibility.
 
 
-File: docWSG7kC.info,  Node: Usage,  Next: Limitations,  Prev: Overview,  Up: Introduction
+File: docpIHCJw.info,  Node: Usage,  Next: Limitations,  Prev: Overview,  Up: Introduction
 
 1.2 Usage
 =========
@@ -185,7 +185,7 @@ provide a development mailing list
 <~pkal/compat-devel@lists.sr.ht>).
 
 
-File: docWSG7kC.info,  Node: Limitations,  Prev: Usage,  Up: Introduction
+File: docpIHCJw.info,  Node: Limitations,  Prev: Usage,  Up: Introduction
 
 1.3 Limitations
 ===============
@@ -277,7 +277,7 @@ belong here, a *note report: Development. would be much appreciated.
      on the level of Compat.
 
 
-File: docWSG7kC.info,  Node: Support,  Next: Development,  Prev: Introduction,  Up: Top
+File: docpIHCJw.info,  Node: Support,  Next: Development,  Prev: Introduction,  Up: Top
 
 2 Support
 *********
@@ -295,7 +295,7 @@ manage to provide for each Emacs version.
 * Emacs 30.1::                   Compatibility support for Emacs 30.1
 
 
-File: docWSG7kC.info,  Node: Emacs 25.1,  Next: Emacs 26.1,  Up: Support
+File: docpIHCJw.info,  Node: Emacs 25.1,  Next: Emacs 26.1,  Up: Support
 
 2.1 Emacs 25.1
 ==============
@@ -505,7 +505,7 @@ implemented in 25.1:
    • The ‘thunk’ library.
 
 
-File: docWSG7kC.info,  Node: Emacs 26.1,  Next: Emacs 27.1,  Prev: Emacs 25.1,  Up: Support
+File: docpIHCJw.info,  Node: Emacs 26.1,  Next: Emacs 27.1,  Prev: Emacs 25.1,  Up: Support
 
 2.2 Emacs 26.1
 ==============
@@ -916,7 +916,7 @@ implemented in 26.1:
    • The ‘svg’ library (published separately as a :core package).
 
 
-File: docWSG7kC.info,  Node: Emacs 27.1,  Next: Emacs 28.1,  Prev: Emacs 26.1,  Up: Support
+File: docpIHCJw.info,  Node: Emacs 27.1,  Next: Emacs 28.1,  Prev: Emacs 26.1,  Up: Support
 
 2.3 Emacs 27.1
 ==============
@@ -1385,7 +1385,7 @@ implemented in 27.1:
    • The ‘image-converter’ library.
 
 
-File: docWSG7kC.info,  Node: Emacs 28.1,  Next: Emacs 29.1,  Prev: Emacs 27.1,  Up: Support
+File: docpIHCJw.info,  Node: Emacs 28.1,  Next: Emacs 29.1,  Prev: Emacs 27.1,  Up: Support
 
 2.4 Emacs 28.1
 ==============
@@ -1845,7 +1845,7 @@ implemented in 28.1:
    • The ‘multisession’ library.
 
 
-File: docWSG7kC.info,  Node: Emacs 29.1,  Next: Emacs 30.1,  Prev: Emacs 28.1,  Up: Support
+File: docpIHCJw.info,  Node: Emacs 29.1,  Next: Emacs 30.1,  Prev: Emacs 28.1,  Up: Support
 
 2.5 Emacs 29.1
 ==============
@@ -2679,7 +2679,7 @@ implemented in 29.1:
    • Support for symbols with position information.
 
 
-File: docWSG7kC.info,  Node: Emacs 30.1,  Prev: Emacs 29.1,  Up: Support
+File: docpIHCJw.info,  Node: Emacs 30.1,  Prev: Emacs 29.1,  Up: Support
 
 2.6 Emacs 30.1
 ==============
@@ -2956,7 +2956,7 @@ Compat does not provide support for the following Lisp features
 implemented in 30.1:
 
 
-File: docWSG7kC.info,  Node: Development,  Next: Function Index,  Prev: Support,  Up: Top
+File: docpIHCJw.info,  Node: Development,  Next: Function Index,  Prev: Support,  Up: Top
 
 3 Development
 *************
@@ -2993,7 +2993,7 @@ version has been reasonably stabilized, e.g., around the time when the
 Emacs version branch is created in the Emacs repository on Savannah.
 
 
-File: docWSG7kC.info,  Node: Function Index,  Next: Variable Index,  Prev: Development,  Up: Top
+File: docpIHCJw.info,  Node: Function Index,  Next: Variable Index,  Prev: Development,  Up: Top
 
 Appendix A Function Index
 *************************
@@ -3226,7 +3226,7 @@ Appendix A Function Index
 * xor:                                   Emacs 27.1.          (line 142)
 
 
-File: docWSG7kC.info,  Node: Variable Index,  Prev: Function Index,  Up: Top
+File: docpIHCJw.info,  Node: Variable Index,  Prev: Function Index,  Up: Top
 
 Appendix B Variable Index
 *************************
