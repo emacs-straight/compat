@@ -1,7 +1,7 @@
-This is doczZFzhP.info, produced by makeinfo version 6.8 from
+This is doc319dTO.info, produced by makeinfo version 7.1.1 from
 compat.texi.
 
-Copyright © 2022-2025 Free Software Foundation, Inc.
+Copyright © 2022-2026 Free Software Foundation, Inc.
 
      Permission is granted to copy, distribute and/or modify this
      document under the terms of the GNU Free Documentation License,
@@ -20,7 +20,7 @@ START-INFO-DIR-ENTRY
 END-INFO-DIR-ENTRY
 
 
-File: doczZFzhP.info,  Node: Top,  Next: Introduction,  Up: (dir)
+File: doc319dTO.info,  Node: Top,  Next: Introduction,  Up: (dir)
 
 "Compat" Manual
 ***************
@@ -29,7 +29,7 @@ This manual documents the usage of the "Compat" Emacs lisp library, the
 forward-compatibility library for Emacs Lisp, corresponding to version
 30.1.0.1.
 
-   Copyright © 2022-2025 Free Software Foundation, Inc.
+   Copyright © 2022-2026 Free Software Foundation, Inc.
 
      Permission is granted to copy, distribute and/or modify this
      document under the terms of the GNU Free Documentation License,
@@ -50,7 +50,7 @@ forward-compatibility library for Emacs Lisp, corresponding to version
 * Function Index::
 * Variable Index::
 
-— The Detailed Node Listing —
+-- The Detailed Node Listing --
 
 Introduction
 
@@ -69,7 +69,7 @@ Support
 
 
 
-File: doczZFzhP.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
+File: doc319dTO.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
 
 1 Introduction
 **************
@@ -81,7 +81,7 @@ File: doczZFzhP.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
 * Limitations::
 
 
-File: doczZFzhP.info,  Node: Overview,  Next: Usage,  Up: Introduction
+File: doc319dTO.info,  Node: Overview,  Next: Usage,  Up: Introduction
 
 1.1 Overview
 ============
@@ -96,7 +96,7 @@ audience are package developers that are interested in using newer
 developments, without having to break compatibility.
 
 
-File: doczZFzhP.info,  Node: Usage,  Next: Limitations,  Prev: Overview,  Up: Introduction
+File: doc319dTO.info,  Node: Usage,  Next: Limitations,  Prev: Overview,  Up: Introduction
 
 1.2 Usage
 =========
@@ -185,7 +185,7 @@ provide a development mailing list
 <~pkal/compat-devel@lists.sr.ht>).
 
 
-File: doczZFzhP.info,  Node: Limitations,  Prev: Usage,  Up: Introduction
+File: doc319dTO.info,  Node: Limitations,  Prev: Usage,  Up: Introduction
 
 1.3 Limitations
 ===============
@@ -211,8 +211,8 @@ from the list.  In case you miss functionality which you think should
 belong here, a *note report: Development. would be much appreciated.
 
    • The additional functionality is a command or a user-facing minor or
-     major mode.  Compat is limited to functionality on the “library
-     level”.  Generally functions provided by Compat are
+     major mode.  Compat is limited to functionality on the "library
+     level".  Generally functions provided by Compat are
      non-interactive, such that the user interface (M-x) is unaffected
      by the presence of Compat.
 
@@ -224,9 +224,9 @@ belong here, a *note report: Development. would be much appreciated.
      includes some private functions, they are meant purely for internal
      usage.
 
-   • The added or extended function belongs to the “application level”
-     and not the “library level”.  Features which are not preloaded
-     often belong to the “application level”.  Application examples are
+   • The added or extended function belongs to the "application level"
+     and not the "library level".  Features which are not preloaded
+     often belong to the "application level".  Application examples are
      programming modes or modes like Dired, IRC and Gnus.  If these
      modes are extended with new functions, these are not ported back.
 
@@ -277,12 +277,12 @@ belong here, a *note report: Development. would be much appreciated.
      on the level of Compat.
 
 
-File: doczZFzhP.info,  Node: Support,  Next: Development,  Prev: Introduction,  Up: Top
+File: doc319dTO.info,  Node: Support,  Next: Development,  Prev: Introduction,  Up: Top
 
 2 Support
 *********
 
-This section goes into the features that Compat manages and doesn’t
+This section goes into the features that Compat manages and doesn't
 manage to provide for each Emacs version.
 
 * Menu:
@@ -295,7 +295,7 @@ manage to provide for each Emacs version.
 * Emacs 30.1::                   Compatibility support for Emacs 30.1
 
 
-File: doczZFzhP.info,  Node: Emacs 25.1,  Next: Emacs 26.1,  Up: Support
+File: doc319dTO.info,  Node: Emacs 25.1,  Next: Emacs 26.1,  Up: Support
 
 2.1 Emacs 25.1
 ==============
@@ -310,7 +310,7 @@ functions are made available by Compat on Emacs versions older than
  -- User Option: text-quoting-style
      The value of this user option is a symbol that specifies the style
      Emacs should use for single quotes in the wording of help and
-     messages.  If the option’s value is ‘curve’, the style is ‘like
+     messages.  If the option's value is ‘curve’, the style is ‘like
      this’ with curved single quotes.  If the value is ‘straight’, the
      style is 'like this' with straight apostrophes.  If the value is
      ‘grave’, quotes are not translated and the style is `like this'
@@ -385,7 +385,7 @@ functions are made available by Compat on Emacs versions older than
      This is a generalized variable (*note (elisp)Generalized
      Variables::) that can be used to change a value with ‘setf’.  When
      using it to set a value, optional argument REMOVE non-‘nil’ means
-     to remove KEY’s association from ALIST if the new value is ‘eql’ to
+     to remove KEY's association from ALIST if the new value is ‘eql’ to
      DEFAULT.
 
      *note (elisp)Association Lists::.
@@ -417,11 +417,11 @@ functions are made available by Compat on Emacs versions older than
      Check whether HASH-TABLE is empty (has 0 elements).
 
  -- Macro: thread-first &rest forms
-     Combine FORMS into a single expression by “threading” each element
+     Combine FORMS into a single expression by "threading" each element
      as the _first_ argument of their successor.  Elements of FORMS can
      either be an list of an atom.
 
-     For example, consider the threading expression and it’s equivalent
+     For example, consider the threading expression and it's equivalent
      macro expansion:
 
           (thread-first
@@ -438,11 +438,11 @@ functions are made available by Compat on Emacs versions older than
      restricted to arithmetic or side-effect free code.
 
  -- Macro: thread-last &rest forms
-     Combine FORMS into a single expression by “threading” each element
+     Combine FORMS into a single expression by "threading" each element
      as the _last_ argument of their successor.  Elements of FORMS can
      either be an list of an atom.
 
-     For example, consider the threading expression and it’s equivalent
+     For example, consider the threading expression and it's equivalent
      macro expansion:
 
           (thread-first
@@ -505,7 +505,7 @@ implemented in 25.1:
    • The ‘thunk’ library.
 
 
-File: doczZFzhP.info,  Node: Emacs 26.1,  Next: Emacs 27.1,  Prev: Emacs 25.1,  Up: Support
+File: doc319dTO.info,  Node: Emacs 26.1,  Next: Emacs 27.1,  Prev: Emacs 25.1,  Up: Support
 
 2.2 Emacs 26.1
 ==============
@@ -588,7 +588,7 @@ functions are made available by Compat on Emacs versions older than
      Return a hash of BUFFER-OR-NAME.  If ‘nil’, this defaults to the
      current buffer.  As opposed to ‘secure-hash’, this function
      computes the hash based on the internal representation of the
-     buffer, disregarding any coding systems.  It’s therefore only
+     buffer, disregarding any coding systems.  It's therefore only
      useful when comparing two buffers running in the same Emacs, and is
      not guaranteed to return the same hash between different Emacs
      versions.  It should be somewhat more efficient on larger buffers
@@ -673,7 +673,7 @@ functions are made available by Compat on Emacs versions older than
 
  -- Function: file-local-name filename
      This function returns the _local part_ of FILENAME.  This is the
-     part of the file’s name that identifies it on the remote host, and
+     part of the file's name that identifies it on the remote host, and
      is typically obtained by removing from the remote file name the
      parts that specify the remote host and the method of accessing it.
      For example:
@@ -695,7 +695,7 @@ functions are made available by Compat on Emacs versions older than
 
      CHOICES is an alist where the first element in each entry is a
      character to be entered, the second element is a short name for the
-     entry to be displayed while prompting (if there’s room, it might be
+     entry to be displayed while prompting (if there's room, it might be
      shortened), and the third, optional entry is a longer explanation
      that will be displayed in a help buffer if the user requests more
      help.
@@ -785,9 +785,9 @@ calling convention or behavior was extended in Emacs 26.1:
  -- Function: compat-call make-temp-file prefix &optional dir-flag
           suffix text
      This function creates a temporary file and returns its name.  Emacs
-     creates the temporary file’s name by adding to PREFIX some random
+     creates the temporary file's name by adding to PREFIX some random
      characters that are different in each Emacs job.  The result is
-     guaranteed to be a newly created file, containing TEXT if that’s
+     guaranteed to be a newly created file, containing TEXT if that's
      given as a string and empty otherwise.  On MS-DOS, this function
      can truncate PREFIX to fit into the 8+3 file-name limits.  If
      PREFIX is a relative file name, it is expanded against
@@ -916,7 +916,7 @@ implemented in 26.1:
    • The ‘svg’ library (published separately as a :core package).
 
 
-File: doczZFzhP.info,  Node: Emacs 27.1,  Next: Emacs 28.1,  Prev: Emacs 26.1,  Up: Support
+File: doc319dTO.info,  Node: Emacs 27.1,  Next: Emacs 28.1,  Prev: Emacs 26.1,  Up: Support
 
 2.3 Emacs 27.1
 ==============
@@ -964,7 +964,7 @@ functions are made available by Compat on Emacs versions older than
      character.  Optionally, it ignores any input that is not a member
      of CHARS, a list of accepted characters.  The HISTORY argument
      specifies the history list symbol to use; if it is omitted or
-     ‘nil’, this function doesn’t use the history.
+     ‘nil’, this function doesn't use the history.
 
      If you bind ‘help-form’ to a non-‘nil’ value while calling
      ‘read-char-from-minibuffer’, then pressing ‘help-char’ causes it to
@@ -1004,10 +1004,10 @@ functions are made available by Compat on Emacs versions older than
  -- Function: string-distance string1 string2 &optional bytecompare
      This function returns the _Levenshtein distance_ between the source
      string STRING1 and the target string STRING2.  The Levenshtein
-     distance is the number of single-character changes—deletions,
-     insertions, or replacements—required to transform the source string
-     into the target string; it is one possible definition of the _edit
-     distance_ between strings.
+     distance is the number of single-character changes--deletions,
+     insertions, or replacements--required to transform the source
+     string into the target string; it is one possible definition of the
+     _edit distance_ between strings.
 
      Letter-case of the strings is significant for the computed
      distance, but their text properties are ignored.  If the optional
@@ -1027,7 +1027,7 @@ functions are made available by Compat on Emacs versions older than
      returns the value of the last form in BODY; otherwise, it returns
      ‘nil’.
 
-     Here’s the example at the beginning of this subsection rewritten
+     Here's the example at the beginning of this subsection rewritten
      using ‘ignore-errors’:
 
             (ignore-errors (delete-file filename))
@@ -1048,7 +1048,7 @@ functions are made available by Compat on Emacs versions older than
      *Note (elisp)Progress::.
 
  -- Function: flatten-tree tree
-     This function returns a “flattened” copy of TREE, that is, a list
+     This function returns a "flattened" copy of TREE, that is, a list
      containing all the non-‘nil’ terminal nodes, or leaves, of the tree
      of cons cells rooted at TREE.  Leaves in the returned list are in
      the same order as in TREE.
@@ -1184,14 +1184,14 @@ functions are made available by Compat on Emacs versions older than
      it moves point, but it returns a structure that describes the match
      instead of returning it in ‘match-beginning’ and friends.
 
-     If the text property can’t be found, the function returns ‘nil’.
-     If it’s found, point is placed at the end of the region that has
+     If the text property can't be found, the function returns ‘nil’.
+     If it's found, point is placed at the end of the region that has
      this text property match, and a ‘prop-match’ structure is returned.
 
      PREDICATE can either be ‘t’ (which is a synonym for ‘equal’), ‘nil’
-     (which means “not equal”), or a predicate that will be called with
+     (which means "not equal"), or a predicate that will be called with
      two parameters: The first is VALUE, and the second is the value of
-     the text property we’re inspecting.
+     the text property we're inspecting.
 
      If NOT-CURRENT, if point is in a region where we have a match, then
      skip past that and find the next instance instead.
@@ -1201,12 +1201,12 @@ functions are made available by Compat on Emacs versions older than
      (the end of the match), and ‘prop-match-value’ (the value of
      PROPERTY at the start of the match).
 
-     In the examples below, imagine that you’re in a buffer that looks
+     In the examples below, imagine that you're in a buffer that looks
      like this:
 
           This is a bold and here's bolditalic and this is the end.
 
-     That is, the “bold” words are the ‘bold’ face, and the “italic”
+     That is, the "bold" words are the ‘bold’ face, and the "italic"
      word is in the ‘italic’ face.
 
      With point at the start:
@@ -1303,7 +1303,7 @@ calling convention or behavior was extended in Emacs 27.1:
  -- Function: compat-call regexp-opt strings &optional paren
      This function returns an efficient regular expression that will
      match any of the strings in the list STRINGS.  This is useful when
-     you need to make matching or searching as fast as possible—for
+     you need to make matching or searching as fast as possible--for
      example, for Font Lock mode.
 
      *Note (elisp)Regexp Functions::.
@@ -1385,7 +1385,7 @@ implemented in 27.1:
    • The ‘image-converter’ library.
 
 
-File: doczZFzhP.info,  Node: Emacs 28.1,  Next: Emacs 29.1,  Prev: Emacs 27.1,  Up: Support
+File: doc319dTO.info,  Node: Emacs 28.1,  Next: Emacs 29.1,  Prev: Emacs 27.1,  Up: Support
 
 2.4 Emacs 28.1
 ==============
@@ -1439,13 +1439,13 @@ available by Compat.
 
  -- Function: file-name-concat directory &rest components
      Concatenate COMPONENTS to DIRECTORY, inserting a slash before the
-     components if DIRECTORY or the preceding component didn’t end with
+     components if DIRECTORY or the preceding component didn't end with
      a slash.
 
           (file-name-concat "/tmp" "foo") ⇒ "/tmp/foo"
 
      A DIRECTORY or components that are ‘nil’ or the empty string are
-     ignored—they are filtered out first and do not affect the results
+     ignored--they are filtered out first and do not affect the results
      in any way.
 
      This is almost the same as using ‘concat’, but DIRNAME (and the
@@ -1514,7 +1514,7 @@ available by Compat.
      REGEXP against a substring of STRING.
 
  -- Function: buffer-local-boundp variable buffer
-     This returns non-‘nil’ if there’s either a buffer-local binding of
+     This returns non-‘nil’ if there's either a buffer-local binding of
      VARIABLE (a symbol) in buffer BUFFER, or VARIABLE has a global
      binding.
 
@@ -1523,9 +1523,9 @@ available by Compat.
  -- Macro: with-existing-directory body...
      This macro ensures that ‘default-directory’ is bound to an existing
      directory before executing BODY.  If ‘default-directory’ already
-     exists, that’s preferred, and otherwise some other directory is
+     exists, that's preferred, and otherwise some other directory is
      used.  This macro can be useful, for instance, when calling an
-     external command that requires that it’s running in a directory
+     external command that requires that it's running in a directory
      that exists.  The chosen directory is not guaranteed to be
      writable.
 
@@ -1533,14 +1533,14 @@ available by Compat.
 
  -- Macro: dlet (bindings...) forms...
      This special form is like ‘let’, but it binds all variables
-     dynamically.  This is rarely useful—you usually want to bind normal
-     variables lexically, and special variables (i.e., variables that
-     are defined with ‘defvar’) dynamically, and this is what ‘let’
+     dynamically.  This is rarely useful--you usually want to bind
+     normal variables lexically, and special variables (i.e., variables
+     that are defined with ‘defvar’) dynamically, and this is what ‘let’
      does.
 
      ‘dlet’ can be useful when interfacing with old code that assumes
      that certain variables are dynamically bound (*note (elisp)Dynamic
-     Binding::), but it’s impractical to ‘defvar’ these variables.
+     Binding::), but it's impractical to ‘defvar’ these variables.
      ‘dlet’ will temporarily make the bound variables special, execute
      the forms, and then make the variables non-special again.
 
@@ -1586,7 +1586,7 @@ available by Compat.
      character.  PADDING defaults to the space character.  If STRING is
      longer than LENGTH, no padding is done.  If START is ‘nil’ or
      omitted, the padding is appended to the characters of STRING, and
-     if it’s non-‘nil’, the padding is prepended to STRING’s characters.
+     if it's non-‘nil’, the padding is prepended to STRING's characters.
 
      *Note (elisp)Creating Strings::.
 
@@ -1647,7 +1647,7 @@ available by Compat.
      ‘minibuffer-default-prompt-format’ variable.
 
      ‘minibuffer-default-prompt-format’ is a format string (defaulting
-     to ‘" (default %s)"’ that says how the “default” bit in prompts
+     to ‘" (default %s)"’ that says how the "default" bit in prompts
      like ‘"Local filename (default somefile): "’ are to be formatted.
 
      To allow the users to customize how this is displayed, code that
@@ -1667,7 +1667,7 @@ available by Compat.
      default values are displayed.
 
      If DEFAULT is ‘nil’, there is no default value, and therefore no
-     “default value” string is included in the result value.  If DEFAULT
+     "default value" string is included in the result value.  If DEFAULT
      is a non-‘nil’ list, the first element of the list is used in the
      prompt.
 
@@ -1702,7 +1702,7 @@ available by Compat.
      temporarily when executing BODY.  The previous values are restored
      when the form finishes.  The argument VARIABLES should be a list of
      pairs of strings of the form ‘(VAR VALUE)’, where VAR is the name
-     of the environment variable and VALUE is that variable’s value.
+     of the environment variable and VALUE is that variable's value.
 
           (with-environment-variables (("LANG" "C")
                                        ("LANGUAGE" "en_US:en"))
@@ -1845,7 +1845,7 @@ implemented in 28.1:
    • The ‘multisession’ library.
 
 
-File: doczZFzhP.info,  Node: Emacs 29.1,  Next: Emacs 30.1,  Prev: Emacs 28.1,  Up: Support
+File: doc319dTO.info,  Node: Emacs 29.1,  Next: Emacs 30.1,  Prev: Emacs 28.1,  Up: Support
 
 2.5 Emacs 29.1
 ==============
@@ -1869,7 +1869,7 @@ by Compat.
 
  -- Variable: lisp-directory
      This variable holds a string naming the directory which holds
-     Emacs’s own ‘*.el’ and ‘*.elc’ files.  This is usually the place
+     Emacs's own ‘*.el’ and ‘*.elc’ files.  This is usually the place
      where those files are located in the Emacs installation tree,
      unless Emacs is run from its build directory in which case it
      points to the ‘lisp’ subdirectory in the source directory from
@@ -1881,7 +1881,7 @@ by Compat.
  -- Function: readablep object
      This predicate says whether OBJECT has “readable syntax”, i.e., it
      can be written out and then read back by the Emacs Lisp reader.  If
-     it can’t, this function returns ‘nil’; if it can, this function
+     it can't, this function returns ‘nil’; if it can, this function
      returns a printed representation (via ‘prin1’).
 
  -- Function: substitute-quotes string
@@ -1920,7 +1920,7 @@ by Compat.
 
  -- Macro: with-memoization PLACE CODE...
      This macro provides a simple way to do memoization.  CODE is
-     evaluated and then stashed in PLACE.  If PLACE’s value is
+     evaluated and then stashed in PLACE.  If PLACE's value is
      non-‘nil’, return that value instead of evaluating CODE.
 
  -- Special Form: with-restriction start end [:label label] body
@@ -1982,7 +1982,7 @@ by Compat.
      Unicode.
 
  -- Macro: with-delayed-message (timeout message) body...
-     Sometimes it’s unclear whether an operation will take a long time
+     Sometimes it's unclear whether an operation will take a long time
      to execute or not, or it can be inconvenient to implement a
      progress reporter.  This macro can be used in those situations.
 
@@ -1991,7 +1991,7 @@ by Compat.
 
      In this example, if the body takes more than two seconds to
      execute, the message will be displayed.  If it takes a shorter time
-     than that, the message won’t be displayed.  In either case, the
+     than that, the message won't be displayed.  In either case, the
      body is evaluated as normally, and the return value of the final
      element in the body is the return value of the macro.
 
@@ -2007,7 +2007,7 @@ by Compat.
      MESSAGE is not displayed.
 
  -- Function: buttonize string callback &optional data help-echo
-     Sometimes it’s more convenient to make a string into a button
+     Sometimes it's more convenient to make a string into a button
      without inserting it into a buffer immediately, for instance when
      creating data structures that may then, later, be inserted into a
      buffer.  This function makes STRING into such a string, and
@@ -2019,7 +2019,7 @@ by Compat.
           help-echo
      Make the region between START and END into a button.  When clicked,
      CALLBACK will be called with the DATA as the function argument.  If
-     DATA isn’t present (or is nil), the button itself will be used
+     DATA isn't present (or is nil), the button itself will be used
      instead as the function argument.  If HELP-ECHO, use that as the
      help-echo property.
 
@@ -2036,7 +2036,7 @@ by Compat.
      argument should be either a string or a buffer, and defaults to the
      current buffer.  If the optional PROPERTIES argument is non-‘nil’,
      it should be a ‘display’ property, and in that case, POSITION and
-     OBJECT are ignored.  (This can be useful if you’ve already gotten
+     OBJECT are ignored.  (This can be useful if you've already gotten
      the ‘display’ property with ‘get-char-property’, for instance
      (*note Examining Properties: (elisp)Examining Properties.).
 
@@ -2092,7 +2092,7 @@ by Compat.
           (function-alias-p 'a)
               ⇒ (b c)
 
-     If there’s a loop in the definitions, an error will be signalled.
+     If there's a loop in the definitions, an error will be signalled.
      If NOERROR is non-‘nil’, the non-looping parts of the chain is
      returned instead.
 
@@ -2123,7 +2123,7 @@ by Compat.
           is ARG (or ‘nil’ if ARG is omitted).
         • A cons-cell ‘(OPER . EXPR)’ where OPER is one of
           ‘not’
-               Satisfied if EXPR doesn’t satisfy ‘buffer-match-p’ with
+               Satisfied if EXPR doesn't satisfy ‘buffer-match-p’ with
                the same buffer and ‘arg’.
           ‘or’
                Satisfied if EXPR is a list and _any_ condition in EXPR
@@ -2133,9 +2133,9 @@ by Compat.
                Satisfied if EXPR is a list and _all_ conditions in EXPR
                satisfy ‘buffer-match-p’, with the same buffer and ‘arg’.
           ‘derived-mode’
-               Satisfied if the buffer’s major mode derives from EXPR.
+               Satisfied if the buffer's major mode derives from EXPR.
           ‘major-mode’
-               Satisfied if the buffer’s major mode is equal to EXPR.
+               Satisfied if the buffer's major mode is equal to EXPR.
                Prefer using ‘derived-mode’ instead when both can work.
         • t Satisfied by any buffer.  A convenient alternative to ‘""’
           (empty string), ‘(and)’ (empty conjunction) or ‘always’.
@@ -2197,7 +2197,7 @@ by Compat.
      purpose of detecting the lack of changes in buffer text.  Any other
      changes that are normally perceived as "buffer modifications", such
      as changes in text properties, ‘buffer-file-coding-system’, buffer
-     multibyteness, etc.  – will not be noticed, and the buffer will
+     multibyteness, etc.  - will not be noticed, and the buffer will
      still be marked unmodified, effectively ignoring those changes.
 
  -- Function: file-attribute-file-identifier
@@ -2258,7 +2258,7 @@ by Compat.
      may be preceded by one or more modifier keys.  Finally, a limited
      number of characters have a special shorthand syntax.
 
-     Here’s some example key sequences.
+     Here's some example key sequences.
 
      ‘f’
           The key ‘f’.
@@ -2295,7 +2295,7 @@ by Compat.
 
      If KEY is ‘<t>’, this sets the default binding in KEYMAP.  When an
      event has no binding of its own, the Emacs command loop uses the
-     keymap’s default binding, if there is one.
+     keymap's default binding, if there is one.
 
      Every prefix of KEY must be a prefix key (i.e., bound to a keymap)
      or undefined; otherwise an error is signaled.  If some prefix of
@@ -2334,8 +2334,8 @@ by Compat.
      map.
 
      One use of this function is in preparation for defining a longer
-     key that uses KEY as a prefix—which would not be allowed if KEY has
-     a non-prefix binding.  For example:
+     key that uses KEY as a prefix--which would not be allowed if KEY
+     has a non-prefix binding.  For example:
 
           (keymap-global-unset "C-l")
               ⇒ nil
@@ -2386,7 +2386,7 @@ by Compat.
      frequently have to bind a large number of keys at once, and using
      ‘keymap-set’ on them all can be tedious and error-prone.  Instead
      you can use ‘define-keymap’, which creates a keymap and binds a
-     number of keys.  Here’s a very basic example:
+     number of keys.  Here's a very basic example:
 
           (define-keymap
             "n" #'forward-line
@@ -2400,7 +2400,7 @@ by Compat.
      accepted by ‘keymap-set’.  In addition, the key can be the special
      symbol ‘:menu’, in which case the definition should be a menu
      definition as accepted by ‘easy-menu-define’ (*note (elisp)Easy
-     Menu::).  Here’s a brief example of this usage:
+     Menu::).  Here's a brief example of this usage:
 
           (define-keymap :full t
             "g" #'eww-reload
@@ -2411,7 +2411,7 @@ by Compat.
      A number of keywords can be used before the key/definition pairs to
      change features of the new keymap.  If any of the feature keywords
      is missing from the ‘define-keymap’ call, the default value for
-     that feature is ‘nil’.  Here’s a list of the available feature
+     that feature is ‘nil’.  Here's a list of the available feature
      keywords:
 
      ‘:full’
@@ -2449,18 +2449,18 @@ by Compat.
 
  -- Function: defvar-keymap (variable-name &rest defs)
      By far, the most common thing to do with a keymap is to bind it to
-     a variable.  This is what virtually all modes do—a mode called
+     a variable.  This is what virtually all modes do--a mode called
      ‘foo’ almost always has a variable called ‘foo-mode-map’.
 
      This macro defines NAME as a variable, passes OPTIONS and PAIRS to
      ‘define-keymap’, and uses the result as the default value for the
      variable.
 
-     OPTIONS is like the keywords in ‘define-keymap’, but there’s an
+     OPTIONS is like the keywords in ‘define-keymap’, but there's an
      additional ‘:doc’ keyword that provides the doc string for the
      defined variable.
 
-     Here’s an example:
+     Here's an example:
 
           (defvar-keymap eww-textarea-map
             :parent text-mode-map
@@ -2476,7 +2476,8 @@ by Compat.
  -- Function: window-configuration-equal-p config1 config2
      This function says whether two window configurations have the same
      window layout, but ignores the values of point and the saved
-     scrolling positions—it can return ‘t’ even if those aspects differ.
+     scrolling positions--it can return ‘t’ even if those aspects
+     differ.
 
  -- Macro: ert-with-temp-file name &rest body
      Bind NAME to the name of a new temporary file and evaluate BODY.
@@ -2505,7 +2506,7 @@ by Compat.
      variables in NAMES bound to a fresh uninterned symbol, or “gensym”,
      in Common Lisp parlance.  For macros requiring more than one
      gensym, use of ‘cl-with-gensyms’ shortens the code and renders
-     one’s intentions clearer.  Compare:
+     one's intentions clearer.  Compare:
 
           (defmacro my-macro (foo)
             (let ((bar (gensym "bar"))
@@ -2612,7 +2613,7 @@ calling convention or behavior was extended in Emacs 29.1:
      Split STRING into a list of strings on newline boundaries.  If the
      optional argument OMIT-NULLS is non-‘nil’, remove empty lines from
      the results.  If the optional argument KEEP-NEWLINES is non-‘nil’,
-     don’t remove the trailing newlines from the result strings.
+     don't remove the trailing newlines from the result strings.
 
      *Note (elisp)Creating Strings::.
 
@@ -2696,7 +2697,7 @@ implemented in 29.1:
    • Support for symbols with position information.
 
 
-File: doczZFzhP.info,  Node: Emacs 30.1,  Prev: Emacs 29.1,  Up: Support
+File: doc319dTO.info,  Node: Emacs 30.1,  Prev: Emacs 29.1,  Up: Support
 
 2.6 Emacs 30.1
 ==============
@@ -2825,7 +2826,7 @@ will be the need for changes, so use these functions with care.
      below).  If FEATURE is already loaded, this function checks if
      FEATURE was provided by a file different from FILENAME, and if so,
      it by default signals an error.  If the value of the optional
-     argument NOERROR is ‘reload’, the function doesn’t signal an error,
+     argument NOERROR is ‘reload’, the function doesn't signal an error,
      but instead forcibly reloads FILENAME; if NOERROR is some other
      non-‘nil’ value, the function emits a warning about FEATURE being
      already provided by another file.
@@ -3009,7 +3010,7 @@ Compat does not provide support for the following Lisp features
 implemented in 30.1:
 
 
-File: doczZFzhP.info,  Node: Development,  Next: Function Index,  Prev: Support,  Up: Top
+File: doc319dTO.info,  Node: Development,  Next: Function Index,  Prev: Support,  Up: Top
 
 3 Development
 *************
@@ -3046,7 +3047,7 @@ version has been reasonably stabilized, e.g., around the time when the
 Emacs version branch is created in the Emacs repository on Savannah.
 
 
-File: doczZFzhP.info,  Node: Function Index,  Next: Variable Index,  Prev: Development,  Up: Top
+File: doc319dTO.info,  Node: Function Index,  Next: Variable Index,  Prev: Development,  Up: Top
 
 Appendix A Function Index
 *************************
@@ -3071,9 +3072,9 @@ Appendix A Function Index
 * buttonize-region:                      Emacs 29.1.          (line 171)
 * char-to-name:                          Emacs 30.1.          (line  50)
 * char-uppercase-p:                      Emacs 29.1.          (line 133)
-* cl-constantly:                         Emacs 29.1.          (line 652)
-* cl-once-only:                          Emacs 29.1.          (line 675)
-* cl-with-gensyms:                       Emacs 29.1.          (line 656)
+* cl-constantly:                         Emacs 29.1.          (line 653)
+* cl-once-only:                          Emacs 29.1.          (line 676)
+* cl-with-gensyms:                       Emacs 29.1.          (line 657)
 * closurep:                              Emacs 30.1.          (line  57)
 * color-dark-p:                          Emacs 28.1.          (line 326)
 * color-oklab-to-srgb:                   Emacs 30.1.          (line  44)
@@ -3088,21 +3089,21 @@ Appendix A Function Index
 * compat-call completion-metadata-get:   Emacs 30.1.          (line 287)
 * compat-call copy-tree:                 Emacs 30.1.          (line 297)
 * compat-call count-windows:             Emacs 28.1.          (line 411)
-* compat-call define-key:                Emacs 29.1.          (line 772)
+* compat-call define-key:                Emacs 29.1.          (line 773)
 * compat-call executable-find:           Emacs 27.1.          (line 429)
 * compat-call file-size-human-readable:  Emacs 27.1.          (line 397)
 * compat-call line-number-at-pos:        Emacs 26.1.          (line 330)
 * compat-call lookup-key:                Emacs 27.1.          (line 356)
 * compat-call make-temp-file:            Emacs 26.1.          (line 278)
-* compat-call plist-get:                 Emacs 29.1.          (line 788)
-* compat-call plist-member:              Emacs 29.1.          (line 812)
-* compat-call plist-put:                 Emacs 29.1.          (line 800)
+* compat-call plist-get:                 Emacs 29.1.          (line 789)
+* compat-call plist-member:              Emacs 29.1.          (line 813)
+* compat-call plist-put:                 Emacs 29.1.          (line 801)
 * compat-call recenter:                  Emacs 27.1.          (line 346)
 * compat-call regexp-opt:                Emacs 27.1.          (line 385)
-* compat-call set-transient-map:         Emacs 29.1.          (line 727)
+* compat-call set-transient-map:         Emacs 29.1.          (line 728)
 * compat-call setq-local:                Emacs 27.1.          (line 370)
 * compat-call sort:                      Emacs 30.1.          (line 212)
-* compat-call string-lines:              Emacs 29.1.          (line 763)
+* compat-call string-lines:              Emacs 29.1.          (line 764)
 * compat-call string-trim:               Emacs 26.1.          (line 375)
 * compat-call string-trim-left:          Emacs 26.1.          (line 359)
 * compat-call string-trim-right:         Emacs 26.1.          (line 367)
@@ -3136,8 +3137,8 @@ Appendix A Function Index
 * dolist-with-progress-reporter:         Emacs 27.1.          (line 119)
 * drop:                                  Emacs 30.1.          (line 110)
 * ensure-list:                           Emacs 28.1.          (line 162)
-* ert-with-temp-directory:               Emacs 29.1.          (line 640)
-* ert-with-temp-file:                    Emacs 29.1.          (line 634)
+* ert-with-temp-directory:               Emacs 29.1.          (line 641)
+* ert-with-temp-file:                    Emacs 29.1.          (line 635)
 * file-attribute-access-time:            Emacs 26.1.          (line 223)
 * file-attribute-collect:                Emacs 26.1.          (line 260)
 * file-attribute-device-number:          Emacs 26.1.          (line 255)
@@ -3286,7 +3287,7 @@ Appendix A Function Index
 * xor:                                   Emacs 27.1.          (line 142)
 
 
-File: doczZFzhP.info,  Node: Variable Index,  Prev: Function Index,  Up: Top
+File: doc319dTO.info,  Node: Variable Index,  Prev: Function Index,  Up: Top
 
 Appendix B Variable Index
 *************************
@@ -3301,7 +3302,7 @@ Appendix B Variable Index
 * lisp-directory:                        Emacs 29.1.          (line  23)
 * mounted-file-systems:                  Emacs 26.1.          (line 133)
 * regexp-unmatchable:                    Emacs 27.1.          (line 152)
-* set-transient-map-timeout:             Emacs 29.1.          (line 753)
+* set-transient-map-timeout:             Emacs 29.1.          (line 754)
 * text-quoting-style:                    Emacs 25.1.          (line  13)
 * trusted-content:                       Emacs 30.1.          (line  14)
 * untrusted-content:                     Emacs 29.1.          (line  17)
@@ -3309,21 +3310,21 @@ Appendix B Variable Index
 
 
 Tag Table:
-Node: Top829
+Node: Top831
 Node: Introduction2328
 Node: Overview2491
 Node: Usage3017
 Node: Limitations7396
-Node: Support12262
-Node: Emacs 25.112917
-Node: Emacs 26.121405
-Node: Emacs 27.138699
-Node: Emacs 28.159096
-Node: Emacs 29.179232
-Node: Emacs 30.1117414
-Node: Development132226
-Node: Function Index133960
-Node: Variable Index150925
+Node: Support12246
+Node: Emacs 25.112899
+Node: Emacs 26.121371
+Node: Emacs 27.138655
+Node: Emacs 28.159021
+Node: Emacs 29.179131
+Node: Emacs 30.1117271
+Node: Development132081
+Node: Function Index133815
+Node: Variable Index150780
 
 End Tag Table
 
