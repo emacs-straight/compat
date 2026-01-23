@@ -1,4 +1,4 @@
-This is docrbw1fW.info, produced by makeinfo version 7.1.1 from
+This is compat.info, produced by makeinfo version 7.1.1 from
 compat.texi.
 
 Copyright © 2022-2026 Free Software Foundation, Inc.
@@ -20,7 +20,7 @@ START-INFO-DIR-ENTRY
 END-INFO-DIR-ENTRY
 
 
-File: docrbw1fW.info,  Node: Top,  Next: Introduction,  Up: (dir)
+File: compat.info,  Node: Top,  Next: Introduction,  Up: (dir)
 
 "Compat" Manual
 ***************
@@ -69,7 +69,7 @@ Support
 
 
 
-File: docrbw1fW.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
+File: compat.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
 
 1 Introduction
 **************
@@ -81,7 +81,7 @@ File: docrbw1fW.info,  Node: Introduction,  Next: Support,  Prev: Top,  Up: Top
 * Limitations::
 
 
-File: docrbw1fW.info,  Node: Overview,  Next: Usage,  Up: Introduction
+File: compat.info,  Node: Overview,  Next: Usage,  Up: Introduction
 
 1.1 Overview
 ============
@@ -96,7 +96,7 @@ audience are package developers that are interested in using newer
 developments, without having to break compatibility.
 
 
-File: docrbw1fW.info,  Node: Usage,  Next: Limitations,  Prev: Overview,  Up: Introduction
+File: compat.info,  Node: Usage,  Next: Limitations,  Prev: Overview,  Up: Introduction
 
 1.2 Usage
 =========
@@ -185,7 +185,7 @@ provide a development mailing list
 <~pkal/compat-devel@lists.sr.ht>).
 
 
-File: docrbw1fW.info,  Node: Limitations,  Prev: Usage,  Up: Introduction
+File: compat.info,  Node: Limitations,  Prev: Usage,  Up: Introduction
 
 1.3 Limitations
 ===============
@@ -277,7 +277,7 @@ belong here, a *note report: Development. would be much appreciated.
      on the level of Compat.
 
 
-File: docrbw1fW.info,  Node: Support,  Next: Development,  Prev: Introduction,  Up: Top
+File: compat.info,  Node: Support,  Next: Development,  Prev: Introduction,  Up: Top
 
 2 Support
 *********
@@ -295,7 +295,7 @@ manage to provide for each Emacs version.
 * Emacs 30.1::                   Compatibility support for Emacs 30.1
 
 
-File: docrbw1fW.info,  Node: Emacs 25.1,  Next: Emacs 26.1,  Up: Support
+File: compat.info,  Node: Emacs 25.1,  Next: Emacs 26.1,  Up: Support
 
 2.1 Emacs 25.1
 ==============
@@ -505,7 +505,7 @@ implemented in 25.1:
    • The ‘thunk’ library.
 
 
-File: docrbw1fW.info,  Node: Emacs 26.1,  Next: Emacs 27.1,  Prev: Emacs 25.1,  Up: Support
+File: compat.info,  Node: Emacs 26.1,  Next: Emacs 27.1,  Prev: Emacs 25.1,  Up: Support
 
 2.2 Emacs 26.1
 ==============
@@ -916,7 +916,7 @@ implemented in 26.1:
    • The ‘svg’ library (published separately as a :core package).
 
 
-File: docrbw1fW.info,  Node: Emacs 27.1,  Next: Emacs 28.1,  Prev: Emacs 26.1,  Up: Support
+File: compat.info,  Node: Emacs 27.1,  Next: Emacs 28.1,  Prev: Emacs 26.1,  Up: Support
 
 2.3 Emacs 27.1
 ==============
@@ -1385,7 +1385,7 @@ implemented in 27.1:
    • The ‘image-converter’ library.
 
 
-File: docrbw1fW.info,  Node: Emacs 28.1,  Next: Emacs 29.1,  Prev: Emacs 27.1,  Up: Support
+File: compat.info,  Node: Emacs 28.1,  Next: Emacs 29.1,  Prev: Emacs 27.1,  Up: Support
 
 2.4 Emacs 28.1
 ==============
@@ -1845,7 +1845,7 @@ implemented in 28.1:
    • The ‘multisession’ library.
 
 
-File: docrbw1fW.info,  Node: Emacs 29.1,  Next: Emacs 30.1,  Prev: Emacs 28.1,  Up: Support
+File: compat.info,  Node: Emacs 29.1,  Next: Emacs 30.1,  Prev: Emacs 28.1,  Up: Support
 
 2.5 Emacs 29.1
 ==============
@@ -2697,7 +2697,7 @@ implemented in 29.1:
    • Support for symbols with position information.
 
 
-File: docrbw1fW.info,  Node: Emacs 30.1,  Prev: Emacs 29.1,  Up: Support
+File: compat.info,  Node: Emacs 30.1,  Prev: Emacs 29.1,  Up: Support
 
 2.6 Emacs 30.1
 ==============
@@ -3010,7 +3010,7 @@ Compat does not provide support for the following Lisp features
 implemented in 30.1:
 
 
-File: docrbw1fW.info,  Node: Development,  Next: Function Index,  Prev: Support,  Up: Top
+File: compat.info,  Node: Development,  Next: Function Index,  Prev: Support,  Up: Top
 
 3 Development
 *************
@@ -3047,7 +3047,7 @@ version has been reasonably stabilized, e.g., around the time when the
 Emacs version branch is created in the Emacs repository on Savannah.
 
 
-File: docrbw1fW.info,  Node: Function Index,  Next: Variable Index,  Prev: Development,  Up: Top
+File: compat.info,  Node: Function Index,  Next: Variable Index,  Prev: Development,  Up: Top
 
 Appendix A Function Index
 *************************
@@ -3287,7 +3287,7 @@ Appendix A Function Index
 * xor:                                   Emacs 27.1.          (line 142)
 
 
-File: docrbw1fW.info,  Node: Variable Index,  Prev: Function Index,  Up: Top
+File: compat.info,  Node: Variable Index,  Prev: Function Index,  Up: Top
 
 Appendix B Variable Index
 *************************
@@ -3310,21 +3310,21 @@ Appendix B Variable Index
 
 
 Tag Table:
-Node: Top831
-Node: Introduction2328
-Node: Overview2491
-Node: Usage3017
-Node: Limitations7396
-Node: Support12246
-Node: Emacs 25.112899
-Node: Emacs 26.121371
-Node: Emacs 27.138655
-Node: Emacs 28.159021
-Node: Emacs 29.179131
-Node: Emacs 30.1117271
-Node: Development132081
-Node: Function Index133815
-Node: Variable Index150780
+Node: Top828
+Node: Introduction2322
+Node: Overview2482
+Node: Usage3005
+Node: Limitations7381
+Node: Support12228
+Node: Emacs 25.112878
+Node: Emacs 26.121347
+Node: Emacs 27.138628
+Node: Emacs 28.158991
+Node: Emacs 29.179098
+Node: Emacs 30.1117235
+Node: Development132042
+Node: Function Index133773
+Node: Variable Index150735
 
 End Tag Table
 
