@@ -1,7 +1,28 @@
 Development
 ═══════════
 
+  • compat-28: New pcase pattern `cl-type'.
   • compat-29: Add `string-glyph-compose' and `string-glyph-decompose'.
+  • compat-31: New macros `static-when' and `static-unless'.
+  • compat-31: New functions `oddp' and `evenp'.
+  • compat-31: New functions `minusp' and `plusp'.
+  • compat-31: New macros `incf' and `decf'.
+  • compat-31: New function `color-blend'.
+  • compat-31: New function `completion-table-with-metadata'.
+  • compat-31: New function `completion-list-candidate-at-point'.
+  • compat-31: New macro `with-work-buffer'.
+  • compat-31: New function `unbuttonize-region'.
+  • compat-31: New extended function `seconds-to-string'.
+  • compat-31: New function `hash-table-contains-p'.
+  • compat-31: New function `remove-display-text-property'.
+  • compat-31: New functions `drop-while', `take-while', `member-if',
+    `any', `all'.
+  • compat-31: New function `set-local'.
+  • compat-31: New function `ensure-proper-list'.
+  • compat-31: New error API functions `error-type-p',
+    `error-has-type-p', `error-type' and `error-slot-value'.
+  • Drop support for Emacs 24.x. Emacs 25.1 is required now. In case
+    Emacs 24.x support is still needed, Compat 30 can be used.
 
 
 Release of "Compat" Version 30.1.0.1
@@ -106,41 +127,4 @@ Release of "Compat" Version 29.1.4.2
     displays.
   • compat-28: Add `native-comp-available-p', which always returns nil.
   • compat-29: Add variable `lisp-directory'.
-
-  (Release <2023-07-30 Sun>)
-
-
-Release of "Compat" Version 29.1.4.1
-════════════════════════════════════
-
-  • compat-29: Add `directory-abbrev-apply'.
-  • compat-29: Add `directory-abbrev-make-regexp'.
-
-  (Release <2023-03-26 Sun>)
-
-
-Release of "Compat" Version 29.1.4.0
-════════════════════════════════════
-
-  • compat-27: Drop obsolete `compat-call dired-get-marked-files'.
-  • compat-28: Add support for `defcustom' type `natnum'.
-  • compat-29: Add `with-restriction' and `without-restriction'.
-  • compat-29: Add `cl-constantly'.
-  • compat-29: Drop `with-narrowing' which was renamed to
-    `with-restriction'.
-  • compat-28: Add support for `defcustom' type `key'.
-
-  (Release <2023-03-05 Sun>)
-
-
-Release of "Compat" Version 29.1.3.4
-════════════════════════════════════
-
-  • Ensure that `seq' is required properly both at compile time and
-    runtime, such that compilation of downstream packages works even if
-    Compat itself is not compiled. Magit uses a complex continuous
-    integration system, where Magit is compiled and tested, while the
-    Compat dependency is not compiled.
-  • compat-28: Add `process-lines-handling-status' and
-    `process-lines-ignore-status'.
   …  …
