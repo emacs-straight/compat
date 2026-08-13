@@ -22,10 +22,10 @@ END-INFO-DIR-ENTRY
 
 File: compat.info,  Node: Top,  Next: Introduction,  Up: (dir)
 
-"Compat" Manual
-***************
+Compat Manual
+*************
 
-This manual documents the usage of the "Compat" Emacs lisp library, the
+This manual documents the usage of the Compat Elisp library, the
 forward-compatibility library for Emacs Lisp, corresponding to version
 31.0.0.2.
 
@@ -3321,20 +3321,20 @@ Appendix B Variable Index
 
 Tag Table:
 Node: Top828
-Node: Introduction2322
-Node: Overview2482
-Node: Usage3005
-Node: Limitations7043
-Node: Support11902
-Node: Emacs 26.112552
-Node: Emacs 27.129814
-Node: Emacs 28.150177
-Node: Emacs 29.170327
-Node: Emacs 30.1108464
-Node: Emacs 31.1123290
-Node: Development132642
-Node: Function Index134221
-Node: Variable Index151840
+Node: Introduction2311
+Node: Overview2471
+Node: Usage2994
+Node: Limitations7032
+Node: Support11891
+Node: Emacs 26.112541
+Node: Emacs 27.129803
+Node: Emacs 28.150166
+Node: Emacs 29.170316
+Node: Emacs 30.1108453
+Node: Emacs 31.1123279
+Node: Development132631
+Node: Function Index134210
+Node: Variable Index151829
 
 End Tag Table
 
